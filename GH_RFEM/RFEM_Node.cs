@@ -14,7 +14,7 @@ namespace GH_RFEM
 {
     public class RFEM_Node : GH_Component
     {
-        //definition of variables used in further functions
+        //definition of RFEM variables used in further methods
         IApplication app = null;
         IModel model = null;
 
@@ -27,8 +27,8 @@ namespace GH_RFEM
         /// new tabs/panels will automatically be created.
         /// </summary>
         public RFEM_Node()
-          : base("Node RFEM", "RfNd",
-              "Create RFEM notes from Rhino points",
+          : base("Node RFEM", "RFEM Nd",
+              "Create RFEM nodes from Rhino points",
               "RFEM", "Elements")
         {
         }
@@ -43,11 +43,7 @@ namespace GH_RFEM
             // All parameters must have the correct access type. If you want 
             // to import lists or trees of values, modify the ParamAccess flag.
             pManager.AddPointParameter("Point", "Pt", "Input Rhino points you want to create as RFEM notes", GH_ParamAccess.list);
-            
-            //pManager.AddPlaneParameter("Plane", "P", "Base plane for spiral", GH_ParamAccess.item, Plane.WorldXY);
-            //pManager.AddNumberParameter("Inner Radius", "R0", "Inner radius for spiral", GH_ParamAccess.item, 1.0);
-            //pManager.AddNumberParameter("Outer Radius", "R1", "Outer radius for spiral", GH_ParamAccess.item, 10.0);
-            //pManager.AddIntegerParameter("Turns", "T", "Number of turns between radii", GH_ParamAccess.item, 10);
+            pManager.AddBooleanParameter("Run", "Run", "Toggles whether the nodes are written to RFEM", GH_ParamAccess.item, false);
 
             // If you want to change properties of certain parameters, 
             // you can use the pManager instance to access them by index:
@@ -61,8 +57,9 @@ namespace GH_RFEM
         {
             // Use the pManager object to register your output parameters.
             // Output parameters do not have default values, but they too must have the correct access type.
-            //pManager.AddCurveParameter
-            pManager.AddGenericParameter("RFEM nodes", "RfNd", "RFEM nodes for export in RFEM", GH_ParamAccess.list);
+
+            //pManager.AddGenericParameter("RFEM nodes", "RfNd", "RFEM nodes for export in RFEM", GH_ParamAccess.list);
+
             // Sometimes you want to hide a specific parameter from the Rhino preview.
             // You can use the HideParameter() method as a quick way:
             //pManager.HideParameter(0);
@@ -78,82 +75,61 @@ namespace GH_RFEM
         {
             // First, we need to retrieve all data from the input parameters.
             // We'll start by declaring variables and assigning them starting values.
-
             List<Rhino.Geometry.Point3d> rhino_points3d = new List<Point3d>();
-
-            //DA.GetDataList<Rhino.Geometry.Points>(0, myPointsList);
-
-            //List<Point3d> rhino_points3d = new List<Point3d>();
-            // Plane plane = Plane.WorldXY;
-            // double radius0 = 0.0;
-            //double radius1 = 0.0;
-            //int turns = 0;
+            bool run = false;
+            List<RfemNodeType> RfemNodes = new List<RfemNodeType>();
 
             // Then we need to access the input parameters individually. 
             // When data cannot be extracted from a parameter, we should abort this method.
             if (!DA.GetDataList<Rhino.Geometry.Point3d>(0, rhino_points3d)) return;
+            DA.GetData(1,ref run);
 
+            // The actual functionality will be in a method defined below. This is where we run it
+            if (run == true)
+            {
+                RfemNodes = CreateRfemNodes(rhino_points3d);
+            }
 
-            // We should now validate the data and warn the user if invalid data is supplied.
-            //if (radius0 < 0.0)
-            //{
-            //    AddRuntimeMessage(GH_RuntimeMessageLevel.Error, "Inner radius must be bigger than or equal to zero");
-            //    return;
-            //}
-
-
-            // We're set to create the spiral now. To keep the size of the SolveInstance() method small, 
-            // The actual functionality will be in a different method:
-
-            List<Dlubal.RFEM5.Node> RfemNodes = CreateRfemNodes(rhino_points3d);
-
-            //Curve spiral = CreateSpiral(plane, radius0, radius1, turns);
-
-            // Finally assign the spiral to the output parameter.
-            DA.SetData(0, RfemNodes);
+            // Finally assign the processed data to the output parameter.
+            //DA.SetData(0, RfemNodes);
         }
 
-        private List<Dlubal.RFEM5.Node> CreateRfemNodes(List<Point3d> Rh_pt3d)
+        private List<RfemNodeType> CreateRfemNodes(List<Point3d> Rh_pt3d)
         {
 
-                // Gets interface to running RFEM application.
-                app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
+            // Gets interface to running RFEM application.
+            app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
             // Locks RFEM licence
-            //app.LockLicense();
+            app.LockLicense();
 
             // Gets interface to active RFEM model.
-            //model = app.GetActiveModel();
+            model = app.GetActiveModel();
 
             // Gets interface to model data.
-            //IModelData data = model.GetModelData();
+            IModelData data = model.GetModelData();
 
-            //List<Dlubal.RFEM5.Node> RfemNodeList = new List<Dlubal.RFEM5.Node>();
+            //Create new array for RFEM point objects
             Dlubal.RFEM5.Node[] RfemNodeArray = new Dlubal.RFEM5.Node[Rh_pt3d.Count];
 
-
+            ///This version writes nodes one-by-one because the data.SetNodes() for
+            ///array appears not to be working
             try
             {
                 // modification
                 // Sets all objects to model data.
-                // data.PrepareModification();
+                 data.PrepareModification();
+                
+                for (int index = 0; index < Rh_pt3d.Count; index++)
+                {
+                    RfemNodeArray[index].No = index+1;
+                    RfemNodeArray[index].X = Rh_pt3d[index].X;
+                    RfemNodeArray[index].Y = Rh_pt3d[index].Y;
+                    RfemNodeArray[index].Z = Rh_pt3d[index].Z;
+                    data.SetNode(RfemNodeArray[index]);
+                }
 
-            for (int index = 0; index < Rh_pt3d.Count; index++)
-
-            {
-
-                //Dlubal.RFEM5.Node RfemNode = new Dlubal.RFEM5.Node();
-                // Node RfemNode = new Node();
-                RfemNodeArray[index].No = index+1;
-                RfemNodeArray[index].X = Rh_pt3d[index].X;
-                RfemNodeArray[index].Y = Rh_pt3d[index].Y;
-                RfemNodeArray[index].Z = Rh_pt3d[index].Z;
-
-
-                //data.SetNode(RfemNodeArray[index]);
-            }
-
-            //modification    
-            //data.FinishModification();
+                // finish modification - RFEM regenerates the data
+                data.FinishModification();
             }
 
             catch (Exception ex)
@@ -161,25 +137,25 @@ namespace GH_RFEM
                 MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
-
             // Releases interface to RFEM model.
             model = null;
 
-                // Unlocks licence and releases interface to RFEM application.
-                if (app != null)
+            // Unlocks licence and releases interface to RFEM application.
+            if (app != null)
                 {
-                    //app.UnlockLicense();
+                    app.UnlockLicense();
                     app = null;
                 }
 
-                // Cleans Garbage Collector and releases all cached COM interfaces.
-                System.GC.Collect();
-                System.GC.WaitForPendingFinalizers();
+            // Cleans Garbage Collector and releases all cached COM interfaces.
+            System.GC.Collect();
+            System.GC.WaitForPendingFinalizers();
 
+            ///the lines below outputs created RFEM nodes in output parameter
+            ///current funcionality does not use this
+            ///it uses a custom class (written within this project) RfemNodeType to wrap the Dlubal.RFEM5.Node objects.
             List<Dlubal.RFEM5.Node> RfemNodeList = RfemNodeArray.OfType<Dlubal.RFEM5.Node>().ToList(); // this isn't going to be fast.
             List<RfemNodeType> RfemNodeGHParamList = new List<RfemNodeType>();
-
-           // List<RfemNodeType> aaaa = new List<RfemNodeType>();
 
             foreach (Dlubal.RFEM5.Node rfemNode in RfemNodeList)
             {
@@ -187,7 +163,7 @@ namespace GH_RFEM
                 RfemNodeGHParamList.Add(rfemNodeWrapper);
             }
 
-            return RfemNodeList;
+            return RfemNodeGHParamList; 
 
                             
         }

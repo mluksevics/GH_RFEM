@@ -84,7 +84,10 @@ namespace GH_RFEM
             //DA.GetDataList<Rhino.Geometry.Points>(0, myPointsList);
 
             //List<Point3d> rhino_points3d = new List<Point3d>();
-
+            // Plane plane = Plane.WorldXY;
+            // double radius0 = 0.0;
+            //double radius1 = 0.0;
+            //int turns = 0;
 
             // Then we need to access the input parameters individually. 
             // When data cannot be extracted from a parameter, we should abort this method.

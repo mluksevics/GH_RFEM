@@ -25,6 +25,11 @@ namespace GH_RFEM
         int lineCount = 1;
         int surfaceCount = 1;
 
+        //defining variables used in cycles
+        //defining variables needed to store geometry and RFEM info
+        Rhino.Geometry.Point3d startPoint;
+        Rhino.Geometry.Point3d endPoint;
+
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
         /// constructor without any arguments.
@@ -106,8 +111,29 @@ namespace GH_RFEM
             //start by reducing the input curves to simple Surfaces with start/end points
             List<Rhino.Geometry.Curve> RhSimpleLines = new List<Rhino.Geometry.Curve>();
 
+            // Gets interface to running RFEM application.
+            app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
+            // Locks RFEM licence
+            app.LockLicense();
+
+            // Gets interface to active RFEM model.
+            model = app.GetActiveModel();
+
+            // Gets interface to model data.
+            IModelData data = model.GetModelData();
+
+            // Creates material used for all surfaces
+            Material material = new Material
+            {
+                No = 1,
+                TextID = "NameID|Beton C30/37@TypeID|CONCRETE@NormID|DIN 1045-1 - 08"
+            };
+
+            Dlubal.RFEM5.Surface[] RfemSurfaceArray = new Dlubal.RFEM5.Surface[Rh_Srf.Count];
+
             foreach (Rhino.Geometry.Brep RhSingleSurface in Rh_Srf)
             {
+
                 Rhino.Geometry.Curve[] curves = RhSingleSurface.DuplicateEdgeCurves(true);
                 //double tol = doc.ModelAbsoluteTolerance * 2.1;
                 curves = Rhino.Geometry.Curve.JoinCurves(curves);
@@ -132,84 +158,115 @@ namespace GH_RFEM
                     else
                     {
 
-                        foreach (Rhino.Geometry.Curve explodedSurface in RhSingleCurve.ToPolyLine(0, 0, 3.14, 1, 0, 0, 0, segmentLength, true).DuplicateSegments())
+                        foreach (Rhino.Geometry.Curve explodedLine in RhSingleCurve.ToPolyline(0, 0, 3.14, 1, 0, 0, 0, segmentLength, true).DuplicateSegments())
                         {
-                            RhSimpleLines.Add(explodedSurface);
+                            RhSimpleLines.Add(explodedLine);
                         }
 
                     }
+
+                    Dlubal.RFEM5.Node[] RfemNodeArray = new Dlubal.RFEM5.Node[RhSimpleLines.Count * 2];
+                    Dlubal.RFEM5.Line[] RfemLineArray = new Dlubal.RFEM5.Line[RhSimpleLines.Count];
+
+                    int surfaceNodeCounter = 0; //counts nodes witin one surface. nodeCount counts overall nodes in model
+                    int surfaceLineCounter = 0; // counts lines (edges) for one surface, lineCount counts overall lines in model
+
+                    for (int i = 0; i < RhSimpleLines.Count; i++)
+                    {
+                        startPoint = RhSimpleLines[i].PointAtStart;
+                        endPoint = RhSimpleLines[i].PointAtEnd;
+
+                        RfemNodeArray[surfaceNodeCounter].No = nodeCount;
+                        RfemNodeArray[surfaceNodeCounter].X = startPoint.X;
+                        RfemNodeArray[surfaceNodeCounter].Y = startPoint.Y;
+                        RfemNodeArray[surfaceNodeCounter].Z = startPoint.Z;
+
+                        RfemNodeArray[surfaceNodeCounter + 1].No = nodeCount + 1;
+                        RfemNodeArray[surfaceNodeCounter + 1].X = endPoint.X;
+                        RfemNodeArray[surfaceNodeCounter + 1].Y = endPoint.Y;
+                        RfemNodeArray[surfaceNodeCounter + 1].Z = endPoint.Z;
+
+                        try
+                        {
+                            // modification
+                            // Sets all objects to model data.
+                            data.PrepareModification();
+                            data.SetNode(RfemNodeArray[surfaceNodeCounter]);
+                            data.SetNode(RfemNodeArray[surfaceNodeCounter + 1]);
+
+                            RfemLineArray[surfaceLineCounter].No = lineCount;
+
+                            RfemLineArray[surfaceLineCounter].Type = LineType.PolylineType;
+                            RfemLineArray[surfaceLineCounter].NodeList = $"{RfemNodeArray[surfaceNodeCounter].No}, {RfemNodeArray[surfaceNodeCounter + 1].No}";
+                            data.SetLine(RfemLineArray[surfaceLineCounter]);
+                            // finish modification - RFEM regenerates the data
+                            data.FinishModification();
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                       
+                        nodeCount = nodeCount + 2;
+                        surfaceNodeCounter = surfaceNodeCounter + 2;
+                        lineCount++;
+                        surfaceLineCounter++;
+                    }
+
+                    int surfaceFirstLine = lineCount - RhSimpleLines.Count;
+                    int surfaceLastLine = surfaceFirstLine + RhSimpleLines.Count - 1;
+                    string surfaceLineList = "";
+
+                    for (int i = surfaceFirstLine; i < surfaceLastLine; i++)
+                    {
+                        surfaceLineList = surfaceLineList + i.ToString() + ",";
+                    }
+                    surfaceLineList = surfaceLineList + surfaceLastLine.ToString();
+
+                    Dlubal.RFEM5.Surface surfaceData = new Dlubal.RFEM5.Surface
+                    {
+                        No = surfaceCount,
+                        MaterialNo = material.No,
+                        GeometryType = SurfaceGeometryType.PlaneSurfaceType,
+                        BoundaryLineList = surfaceLineList,
+                        StiffnessType = SurfaceStiffnessType.StandardStiffnessType,
+                    };
+                    surfaceData.Thickness.Type = SurfaceThicknessType.ConstantThicknessType;
+                    surfaceData.Thickness.Constant = 0.2;
+
+                    try
+                    {
+                        // modification
+                        // Sets all objects to model data.
+                        data.PrepareModification();
+                        ISurface surface = data.SetSurface(surfaceData);
+                        // finish modification - RFEM regenerates the data
+                        data.FinishModification();
+
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+
+
+                    RfemSurfaceArray[surfaceCount - 1] = surfaceData;
+
+                    surfaceCount++;
+
+                    //clear lines used in surface
+                    RhSimpleLines.Clear();
                 }
 
-                
 
             }
 
-            //defining variables needed to store geometry and RFEM info
-            Rhino.Geometry.Point3d startPoint;
-            Rhino.Geometry.Point3d endPoint;
-            Dlubal.RFEM5.Surface[] RfemSurfaceArray = new Dlubal.RFEM5.Surface[RhSimpleLines.Count + 1];
-            Dlubal.RFEM5.Node[] RfemNodeArray = new Dlubal.RFEM5.Node[RhSimpleLines.Count * 2 + 2];
+            //resetting counters;
+            nodeCount = 1;
+            lineCount = 1;
+            surfaceCount = 1;
 
 
-            // Gets interface to running RFEM application.
-            app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
-            // Locks RFEM licence
-            app.LockLicense();
-
-            // Gets interface to active RFEM model.
-            model = app.GetActiveModel();
-
-            // Gets interface to model data.
-            IModelData data = model.GetModelData();
-
-            // modification
-            // Sets all objects to model data.
-            data.PrepareModification();
-
-            ///This version writes nodes one-by-one because the data.SetNodes() for
-            ///array appears not to be working
-            try
-            {
-
-                for (int i = 1; i < RhSimpleSurfaces.Count + 1; i++)
-                {
-                    startPoint = RhSimpleSurfaces[i - 1].PointAtStart;
-                    endPoint = RhSimpleSurfaces[i - 1].PointAtEnd;
-
-                    RfemNodeArray[nodeCount].No = nodeCount;
-                    RfemNodeArray[nodeCount].X = startPoint.X;
-                    RfemNodeArray[nodeCount].Y = startPoint.Y;
-                    RfemNodeArray[nodeCount].Z = startPoint.Z;
-
-                    RfemNodeArray[nodeCount + 1].No = nodeCount + 1;
-                    RfemNodeArray[nodeCount + 1].X = endPoint.X;
-                    RfemNodeArray[nodeCount + 1].Y = endPoint.Y;
-                    RfemNodeArray[nodeCount + 1].Z = endPoint.Z;
-
-
-                    data.SetNode(RfemNodeArray[nodeCount]);
-                    data.SetNode(RfemNodeArray[nodeCount + 1]);
-
-
-                    RfemSurfaceArray[lineCount].No = lineCount;
-                    RfemSurfaceArray[lineCount].Type = SurfaceType.PolySurfaceType;
-                    RfemSurfaceArray[lineCount].NodeList = $"{RfemNodeArray[nodeCount].No}, {RfemNodeArray[nodeCount + 1].No}";
-
-                    data.SetSurface(RfemSurfaceArray[lineCount]);
-
-                    nodeCount = nodeCount + 2;
-                    lineCount++;
-                }
-
-
-                // finish modification - RFEM regenerates the data
-                data.FinishModification();
-            }
-
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
 
             // Releases interface to RFEM model.
             model = null;
@@ -229,13 +286,9 @@ namespace GH_RFEM
             ///current funcionality does not use this
             ///it uses a custom class (written within this project) RfemNodeType to wrap the Dlubal.RFEM5.Node objects.
 
-
             List<Dlubal.RFEM5.Surface> RfemSurfaceList = RfemSurfaceArray.OfType<Dlubal.RFEM5.Surface>().ToList(); // this isn't going to be fast.
 
-
             return RfemSurfaceList;
-
-
         }
 
 

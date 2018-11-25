@@ -3,3 +3,5 @@ c:\users\user\documents\visual studio 2015\Projects\GH_RFEM\GH_RFEM\bin\GH_RFEM.
 c:\users\user\documents\visual studio 2015\Projects\GH_RFEM\GH_RFEM\obj\Debug32\GH_RFEM.csprojResolveAssemblyReference.cache
 c:\users\user\documents\visual studio 2015\Projects\GH_RFEM\GH_RFEM\obj\Debug32\GH_RFEM.dll
 c:\users\user\documents\visual studio 2015\Projects\GH_RFEM\GH_RFEM\obj\Debug32\GH_RFEM.pdb
+C:\Users\User\Documents\Visual Studio 2015\Projects\GH_RFEM\GH_RFEM\obj\Debug32\GH_RFEM.Properties.Resources.resources
+C:\Users\User\Documents\Visual Studio 2015\Projects\GH_RFEM\GH_RFEM\obj\Debug32\GH_RFEM.csproj.GenerateResource.Cache

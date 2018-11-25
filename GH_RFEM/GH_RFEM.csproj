@@ -71,7 +71,6 @@
     <Compile Include="RFEM_Surface.cs" />
     <Compile Include="RfemNodeParam.cs" />
     <Compile Include="RfemNodeType.cs" />
-    <Compile Include="RFEM_Write.cs" />
     <Compile Include="RFEM_Line.cs" />
     <Compile Include="RFEM_Node.cs" />
     <Compile Include="GH_RFEMInfo.cs" />

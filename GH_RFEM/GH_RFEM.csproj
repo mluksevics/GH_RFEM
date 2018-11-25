@@ -85,7 +85,6 @@
     <None Include="Resources\icon_line.bmp" />
     <None Include="Resources\icon_node.bmp" />
     <None Include="Resources\icon_surface.bmp" />
-    <Content Include="surface_icon.ico" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Properties\Resources.resx">

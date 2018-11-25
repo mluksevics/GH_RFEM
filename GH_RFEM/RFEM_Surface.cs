@@ -53,9 +53,9 @@ namespace GH_RFEM
             // You can often supply default values when creating parameters.
             // All parameters must have the correct access type. If you want 
             // to import lists or trees of values, modify the ParamAccess flag.
-            pManager.AddSurfaceParameter("Surface", "Srf", "Input Rhino planar sufaces you want to create as RFEM Surfaces", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Segment length", "MaxSegmentLength", "Any edges with splines/circles/arcs will be simplified as segments with maximum length described in this parameter", GH_ParamAccess.item, 1);
-            pManager.AddBooleanParameter("Run", "Run", "Toggles whether the Surfaces are written to RFEM", GH_ParamAccess.item, false);
+            pManager.AddSurfaceParameter("Surface", "Surfaces", "Input Rhino planar sufaces you want to create as RFEM Surfaces", GH_ParamAccess.list);
+            pManager.AddNumberParameter("Segment length", "MaxSegmentLength[m]", "Any edges with splines/circles/arcs will be simplified as segments with maximum length described in this parameter", GH_ParamAccess.item, 1);
+            pManager.AddBooleanParameter("Run", "Toggle", "Toggles whether the Surfaces are written to RFEM", GH_ParamAccess.item, false);
 
             // If you want to change properties of certain parameters, 
             // you can use the pManager instance to access them by index:

@@ -122,6 +122,9 @@ namespace GH_RFEM
             // Gets interface to model data.
             IModelData data = model.GetModelData();
 
+            //prepares model for modification.
+            data.PrepareModification();
+
             // Creates material used for all surfaces
             Material material = new Material
             {
@@ -144,12 +147,14 @@ namespace GH_RFEM
                     {
                         if (RhSingleCurve.SpanCount == 1)
                         {
+                            //if this is simple linear line
                             RhSimpleLines.Add(RhSingleCurve);
                         }
                         else
                         {
                             foreach (Rhino.Geometry.Curve explodedSurface in RhSingleCurve.DuplicateSegments())
                             {
+                                //if this is polyline
                                 RhSimpleLines.Add(explodedSurface);
                             }
                         }
@@ -160,6 +165,7 @@ namespace GH_RFEM
 
                         foreach (Rhino.Geometry.Curve explodedLine in RhSingleCurve.ToPolyline(0, 0, 3.14, 1, 0, 0, 0, segmentLength, true).DuplicateSegments())
                         {
+                            //if this is curved lines
                             RhSimpleLines.Add(explodedLine);
                         }
 
@@ -176,41 +182,82 @@ namespace GH_RFEM
                         startPoint = RhSimpleLines[i].PointAtStart;
                         endPoint = RhSimpleLines[i].PointAtEnd;
 
-                        RfemNodeArray[surfaceNodeCounter].No = nodeCount;
-                        RfemNodeArray[surfaceNodeCounter].X = startPoint.X;
-                        RfemNodeArray[surfaceNodeCounter].Y = startPoint.Y;
-                        RfemNodeArray[surfaceNodeCounter].Z = startPoint.Z;
-
-                        RfemNodeArray[surfaceNodeCounter + 1].No = nodeCount + 1;
-                        RfemNodeArray[surfaceNodeCounter + 1].X = endPoint.X;
-                        RfemNodeArray[surfaceNodeCounter + 1].Y = endPoint.Y;
-                        RfemNodeArray[surfaceNodeCounter + 1].Z = endPoint.Z;
-
-                        try
+                        //if this is the first line for the surface
+                        if (i==0)
                         {
-                            // modification
-                            // Sets all objects to model data.
-                            data.PrepareModification();
+                            RfemNodeArray[surfaceNodeCounter].No = nodeCount;
+                            RfemNodeArray[surfaceNodeCounter].X = Math.Round(startPoint.X, 5);
+                            RfemNodeArray[surfaceNodeCounter].Y = Math.Round(startPoint.Y, 5);
+                            RfemNodeArray[surfaceNodeCounter].Z = Math.Round(startPoint.Z, 5);
+
+                            RfemNodeArray[surfaceNodeCounter + 1].No = nodeCount + 1;
+                            RfemNodeArray[surfaceNodeCounter + 1].X = Math.Round(endPoint.X, 5);
+                            RfemNodeArray[surfaceNodeCounter + 1].Y = Math.Round(endPoint.Y, 5);
+                            RfemNodeArray[surfaceNodeCounter + 1].Z = Math.Round(endPoint.Z, 5);
+
                             data.SetNode(RfemNodeArray[surfaceNodeCounter]);
                             data.SetNode(RfemNodeArray[surfaceNodeCounter + 1]);
 
                             RfemLineArray[surfaceLineCounter].No = lineCount;
-
                             RfemLineArray[surfaceLineCounter].Type = LineType.PolylineType;
+
                             RfemLineArray[surfaceLineCounter].NodeList = $"{RfemNodeArray[surfaceNodeCounter].No}, {RfemNodeArray[surfaceNodeCounter + 1].No}";
                             data.SetLine(RfemLineArray[surfaceLineCounter]);
+
+                            nodeCount = nodeCount + 2;
+                            surfaceNodeCounter = surfaceNodeCounter + 2;
+                            lineCount++;
+                            surfaceLineCounter++;
+
+                        }
+                        //if this is the last node for the surface
+                        else if (i== RhSimpleLines.Count-1)
+                        {
+                            //no need to define new node as these are both already defined
+                            //create line connecting previous node with first node for surface
+                            RfemLineArray[surfaceLineCounter].NodeList = $"{RfemNodeArray[surfaceNodeCounter - 1].No}, {RfemNodeArray[0].No}";
+                            data.SetLine(RfemLineArray[surfaceLineCounter]);
+                            lineCount++;
+                            surfaceLineCounter++;
+
+                        }
+                        else
+                        {
+                            //if this is just a node somewhere on edges
+                            RfemNodeArray[surfaceNodeCounter].No = nodeCount;
+                            RfemNodeArray[surfaceNodeCounter].X = Math.Round(endPoint.X, 5);
+                            RfemNodeArray[surfaceNodeCounter].Y = Math.Round(endPoint.Y, 5);
+                            RfemNodeArray[surfaceNodeCounter].Z = Math.Round(endPoint.Z, 5);
+
+                            data.SetNode(RfemNodeArray[surfaceNodeCounter]);
+
+                            RfemLineArray[surfaceLineCounter].No = lineCount;
+                            RfemLineArray[surfaceLineCounter].Type = LineType.PolylineType;
+
+                            RfemLineArray[surfaceLineCounter].NodeList = $"{RfemNodeArray[surfaceNodeCounter-1].No}, {RfemNodeArray[surfaceNodeCounter].No}";
+                            data.SetLine(RfemLineArray[surfaceLineCounter]);
+
+                            nodeCount++;
+                            surfaceNodeCounter++;
+                            lineCount++;
+                            surfaceLineCounter++;
+
+                        }
+
+                        /*
+                        try
+                        {
+
+                            
                             // finish modification - RFEM regenerates the data
-                            data.FinishModification();
+                            //data.FinishModification();
                         }
                         catch (Exception ex)
                         {
                             MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         }
-                       
-                        nodeCount = nodeCount + 2;
-                        surfaceNodeCounter = surfaceNodeCounter + 2;
-                        lineCount++;
-                        surfaceLineCounter++;
+                       */
+
                     }
 
                     int surfaceFirstLine = lineCount - RhSimpleLines.Count;
@@ -238,10 +285,10 @@ namespace GH_RFEM
                     {
                         // modification
                         // Sets all objects to model data.
-                        data.PrepareModification();
+                        //data.PrepareModification();
                         ISurface surface = data.SetSurface(surfaceData);
                         // finish modification - RFEM regenerates the data
-                        data.FinishModification();
+
 
                     }
                     catch (Exception ex)
@@ -266,7 +313,8 @@ namespace GH_RFEM
             lineCount = 1;
             surfaceCount = 1;
 
-
+            //finishes modifications - regenerates numbering etc.
+            data.FinishModification();
 
             // Releases interface to RFEM model.
             model = null;

@@ -1,4 +1,1 @@
-backup/**
-grasshopper/**
-publish/**
-rhino/**
+exclude/

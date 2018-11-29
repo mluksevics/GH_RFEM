@@ -1,4 +1,4 @@
-backup
-grasshopper
-publish
-rhino
+backup/**
+grasshopper/**
+publish/**
+rhino/**

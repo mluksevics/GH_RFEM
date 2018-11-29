@@ -284,8 +284,6 @@ namespace GH_RFEM
                     try
                     {
                         // modification
-                        // Sets all objects to model data.
-                        //data.PrepareModification();
                         ISurface surface = data.SetSurface(surfaceData);
                         // finish modification - RFEM regenerates the data
 

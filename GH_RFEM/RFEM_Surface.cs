@@ -38,9 +38,9 @@ namespace GH_RFEM
         /// new tabs/panels will automatically be created.
         /// </summary>
         public RFEM_Surface()
-          : base("Surface RFEM", "RFEM Srf",
+          : base("Surface RFEM", "RFEM Srf Write",
               "Create RFEM Surfaces from Rhino Surfaces",
-              "RFEM", "Elements")
+              "RFEM", "Write")
         {
         }
 

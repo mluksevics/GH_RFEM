@@ -12,7 +12,7 @@ using System.Windows.Forms;
 
 namespace GH_RFEM
 {
-    public class RFEM_Line : GH_Component
+    public class RFEM_Line_Read : GH_Component
     {
         //definition of RFEM and input variables used in further methods
         IApplication app = null;
@@ -28,10 +28,10 @@ namespace GH_RFEM
         /// Subcategory the panel. If you use non-existing tab or panel names, 
         /// new tabs/panels will automatically be created.
         /// </summary>
-        public RFEM_Line()
-          : base("Line RFEM", "RFEM Ln Write",
-              "Create RFEM lines from Rhino lines",
-              "RFEM", "Write")
+        public RFEM_Line_Read()
+          : base("Read Lines from RFEM", "RFEM Ln Read",
+              "Create Rhino lines from RFEM data",
+              "RFEM", "Read")
         {
         }
 
@@ -44,8 +44,6 @@ namespace GH_RFEM
             // You can often supply default values when creating parameters.
             // All parameters must have the correct access type. If you want 
             // to import lists or trees of values, modify the ParamAccess flag.
-            pManager.AddCurveParameter("Curve", "Curve", "Input Rhino curves you want to create as RFEM lines", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Segment length", "MaxSegmentLength[m]", "Any splines/circles/arcs will be simplified as segments with maximum length described in this parameter", GH_ParamAccess.item, 1);
             pManager.AddBooleanParameter("Run", "Toggle", "Toggles whether the lines are written to RFEM", GH_ParamAccess.item, false);
 
             // If you want to change properties of certain parameters, 
@@ -61,7 +59,7 @@ namespace GH_RFEM
             // Use the pManager object to register your output parameters.
             // Output parameters do not have default values, but they too must have the correct access type.
 
-            //pManager.AddGenericParameter("RFEM lines", "RfLn", "RFEM lines for export in RFEM", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Rhino curves", "Curves", "Rhino curves read from RFEM", GH_ParamAccess.list);
 
             // Sometimes you want to hide a specific parameter from the Rhino preview.
             // You can use the HideParameter() method as a quick way:
@@ -78,67 +76,32 @@ namespace GH_RFEM
         {
             // First, we need to retrieve all data from the input parameters.
             // We'll start by declaring variables and assigning them starting values.
-            List<Rhino.Geometry.Curve> rhino_curve = new List<Curve>();
-            List<Dlubal.RFEM5.Line> RfemLines = new List<Dlubal.RFEM5.Line>();
+            List<Rhino.Geometry.Curve> RhinoCurves = new List<Curve>();
+            string lineList = "all";
+
 
             // Then we need to access the input parameters individually. 
             // When data cannot be extracted from a parameter, we should abort this method.
-            if (!DA.GetDataList<Rhino.Geometry.Curve>(0, rhino_curve)) return;
-            DA.GetData(1, ref segmentLength);
-            DA.GetData(2, ref run);
+            DA.GetData(0, ref run);
 
             // The actual functionality will be in a method defined below. This is where we run it
             if (run == true)
             {
-                RfemLines = CreateRfemLines(rhino_curve);
+                RhinoCurves = CreateRhinoCurves(lineList);
             }
 
             // Finally assign the processed data to the output parameter.
             //DA.SetData(0, RfemNodes);
         }
 
-        private List<Dlubal.RFEM5.Line> CreateRfemLines(List<Rhino.Geometry.Curve> Rh_Crv)
+        private List<Rhino.Geometry.Curve> CreateRhinoCurves(string selectedLineList)
         {
             //start by reducing the input curves to simple lines with start/end points
             List<Rhino.Geometry.Curve> RhSimpleLines = new List<Rhino.Geometry.Curve>();
 
-            foreach (Rhino.Geometry.Curve RhSingleCurve in Rh_Crv)
-            {
-                
-                if (RhSingleCurve.IsPolyline() )
-                {
-                    if (RhSingleCurve.SpanCount==1)
-                    {
-                        RhSimpleLines.Add(RhSingleCurve);
-                    }
-                    else
-                    {
-                        foreach (Rhino.Geometry.Curve explodedLine in RhSingleCurve.DuplicateSegments())
-                        {
-                            RhSimpleLines.Add(explodedLine);
-                        }
-                    }
-                }
+ 
 
-                else
-                {
-                    
-                    foreach (Rhino.Geometry.Curve explodedLine in RhSingleCurve.ToPolyline(0, 0, 3.14, 1, 0, 0, 0, segmentLength, true).DuplicateSegments())
-                    {
-                        RhSimpleLines.Add(explodedLine);
-                    }
 
-                }
-                
-            }
-
-            //defining variables needed to store geometry and RFEM info
-            Rhino.Geometry.Point3d startPoint;
-            Rhino.Geometry.Point3d endPoint;
-            Dlubal.RFEM5.Line[] RfemLineArray = new Dlubal.RFEM5.Line[RhSimpleLines.Count+1];
-            Dlubal.RFEM5.Node[] RfemNodeArray = new Dlubal.RFEM5.Node[RhSimpleLines.Count * 2+2];
-
-            
             // Gets interface to running RFEM application.
             app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
             // Locks RFEM licence
@@ -150,52 +113,24 @@ namespace GH_RFEM
             // Gets interface to model data.
             IModelData data = model.GetModelData();
 
-            // modification
-            // Sets all objects to model data.
-            data.PrepareModification();
+            //Create new array for Rhino Curve objects
+            List<Rhino.Geometry.Curve> rhinoLineList = new List<Rhino.Geometry.Curve>();
 
-            ///This version writes nodes one-by-one because the data.SetNodes() for
-            ///array appears not to be working
             try
             {
-
-                //cycling through all lines and creating RFEM objects;
-                int nodeCount = 1;
-                int lineCount = 1;
-
-                for (int i = 1; i < RhSimpleLines.Count+1; i++)
+                for (int index = 0; index < data.GetLineCount(); index++)
                 {
-                    startPoint = RhSimpleLines[i - 1].PointAtStart;
-                    endPoint = RhSimpleLines[i - 1].PointAtEnd;
 
-                    RfemNodeArray[nodeCount].No = nodeCount;
-                    RfemNodeArray[nodeCount].X = startPoint.X;
-                    RfemNodeArray[nodeCount].Y = startPoint.Y;
-                    RfemNodeArray[nodeCount].Z = startPoint.Z;
+                    Dlubal.RFEM5.Line currentLine = data.GetLine(index, ItemAt.AtIndex).GetData();
+                    Rhino.Geometry.Curve currentRhinoCurve = new Rhino.Geometry.Curve();
+                    currentRhinoCurve.X = currentNode.X;
+                    currentRhinoCurve.Y = currentNode.Y;
+                    currentRhinoCurve.Z = currentNode.Z;
 
-                    RfemNodeArray[nodeCount + 1].No = nodeCount + 1;
-                    RfemNodeArray[nodeCount + 1].X = endPoint.X;
-                    RfemNodeArray[nodeCount + 1].Y = endPoint.Y;
-                    RfemNodeArray[nodeCount + 1].Z = endPoint.Z;
-
-
-                    data.SetNode(RfemNodeArray[nodeCount]);
-                    data.SetNode(RfemNodeArray[nodeCount + 1]);
-
-
-                    RfemLineArray[lineCount].No = lineCount;
-                    RfemLineArray[lineCount].Type = LineType.PolylineType;
-                    RfemLineArray[lineCount].NodeList = $"{RfemNodeArray[nodeCount].No}, {RfemNodeArray[nodeCount + 1].No}";
-
-                    data.SetLine(RfemLineArray[lineCount]);
-
-                    nodeCount = nodeCount + 2;
-                    lineCount++;
+                    rhinoLineList.Add(currentRhinoCurve);
                 }
 
 
-                // finish modification - RFEM regenerates the data
-                data.FinishModification();
             }
 
             catch (Exception ex)
@@ -220,11 +155,11 @@ namespace GH_RFEM
             ///the lines below outputs created RFEM nodes in output parameter
             ///current funcionality does not use this
             ///it uses a custom class (written within this project) RfemNodeType to wrap the Dlubal.RFEM5.Node objects.
-            
-     
+
+
             List<Dlubal.RFEM5.Line> RfemLineList = RfemLineArray.OfType<Dlubal.RFEM5.Line>().ToList(); // this isn't going to be fast.
 
-           
+
             return RfemLineList;
 
 

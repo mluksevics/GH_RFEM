@@ -150,16 +150,18 @@ namespace GH_RFEM
                         }
                     }
 
-                    //
+                    //currently component only reads "polyline" type from RFEM, i.e. straight lines
 
                     if (currentLine.Type == LineType.PolylineType)
                     {
 
                         for (int i = 0; i < nodesList.Count-1; i++)
                         {
+                            //getting data for start point and end point from RFEM
                             Dlubal.RFEM5.Node rfemStartPoint = data.GetNode(nodesList[i], ItemAt.AtNo).GetData();
                             Dlubal.RFEM5.Node rfemEndPoint = data.GetNode(nodesList[i+1], ItemAt.AtNo).GetData();
 
+                            //creating Rhino Objects
                             Point3d rhinoStartPoint = new Point3d(rfemStartPoint.X, rfemStartPoint.Y, rfemStartPoint.Z);
                             Point3d rhinoEndPoint = new Point3d(rfemEndPoint.X, rfemEndPoint.Y, rfemEndPoint.Z);
 
@@ -169,11 +171,7 @@ namespace GH_RFEM
 
                         }
                     }
-                    
-
                 }
-
-
             }
 
             catch (Exception ex)

@@ -71,6 +71,7 @@ namespace GH_RFEM
             DA.GetData(5, ref rZ);
             DA.GetData(6, ref Comment);
 
+            //memberRelease.No numbers f releases not assigned here
             memberRelease.TranslationalConstantX = uX;
             memberRelease.TranslationalConstantY = uY;
             memberRelease.TranslationalConstantZ = uZ;

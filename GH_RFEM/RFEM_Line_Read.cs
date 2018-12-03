@@ -91,15 +91,13 @@ namespace GH_RFEM
             }
 
             // Finally assign the processed data to the output parameter.
-            //DA.SetData(0, RfemNodes);
+            DA.SetDataList(0, RhinoCurves);
         }
 
         private List<Rhino.Geometry.Curve> CreateRhinoCurves(string selectedLineList)
         {
-            //start by reducing the input curves to simple lines with start/end points
-            List<Rhino.Geometry.Curve> RhSimpleLines = new List<Rhino.Geometry.Curve>();
-
- 
+            //defining the list with lines that will have to be returned later on
+            List<Rhino.Geometry.Curve> rhOutputCurves = new List<Rhino.Geometry.Curve>();
 
 
             // Gets interface to running RFEM application.
@@ -115,6 +113,10 @@ namespace GH_RFEM
 
             //Create new array for Rhino Curve objects
             List<Rhino.Geometry.Curve> rhinoLineList = new List<Rhino.Geometry.Curve>();
+            
+            //Create new array for Rhino point objects
+            List<Rhino.Geometry.Point3d> rhinoPointArray = new List<Rhino.Geometry.Point3d>();
+
 
             try
             {
@@ -122,12 +124,53 @@ namespace GH_RFEM
                 {
 
                     Dlubal.RFEM5.Line currentLine = data.GetLine(index, ItemAt.AtIndex).GetData();
-                    Rhino.Geometry.Curve currentRhinoCurve = new Rhino.Geometry.Curve();
-                    currentRhinoCurve.X = currentNode.X;
-                    currentRhinoCurve.Y = currentNode.Y;
-                    currentRhinoCurve.Z = currentNode.Z;
 
-                    rhinoLineList.Add(currentRhinoCurve);
+                    // the code below converts string describing nodes used in line definition into
+                    // list fo all used node numbers. e.g. converts "1,2,4-7,9" into "1,2,4,5,6,7,9"
+                    string lineNodes = currentLine.NodeList;
+                    List<int> nodesList = new List<int>();
+
+                    foreach (string tempLineNode in lineNodes.Split(','))
+                    {
+                        if (tempLineNode.Contains('-'))
+                        {
+                            string[] tempLineNodeDashes = new string[2];
+                            tempLineNodeDashes = tempLineNode.Split('-');
+                            int startNumber = Int32.Parse(tempLineNodeDashes[0]);
+                            int endNumber = Int32.Parse(tempLineNodeDashes[1]);
+
+                            for (int i = startNumber; i <= endNumber; i++)
+                            {
+                                nodesList.Add(i);
+                            }
+                        }
+                        else
+                        {
+                            nodesList.Add(Int32.Parse(tempLineNode));
+                        }
+                    }
+
+                    //
+
+                    if (currentLine.Type == LineType.PolylineType)
+                    {
+
+                        for (int i = 0; i < nodesList.Count-1; i++)
+                        {
+                            Dlubal.RFEM5.Node rfemStartPoint = data.GetNode(nodesList[i], ItemAt.AtNo).GetData();
+                            Dlubal.RFEM5.Node rfemEndPoint = data.GetNode(nodesList[i+1], ItemAt.AtNo).GetData();
+
+                            Point3d rhinoStartPoint = new Point3d(rfemStartPoint.X, rfemStartPoint.Y, rfemStartPoint.Z);
+                            Point3d rhinoEndPoint = new Point3d(rfemEndPoint.X, rfemEndPoint.Y, rfemEndPoint.Z);
+
+                            Rhino.Geometry.LineCurve currentRhinoCurve = new Rhino.Geometry.LineCurve(rhinoStartPoint,rhinoEndPoint);
+
+                            rhOutputCurves.Add(currentRhinoCurve);
+
+                        }
+                    }
+                    
+
                 }
 
 
@@ -152,15 +195,8 @@ namespace GH_RFEM
             System.GC.Collect();
             System.GC.WaitForPendingFinalizers();
 
-            ///the lines below outputs created RFEM nodes in output parameter
-            ///current funcionality does not use this
-            ///it uses a custom class (written within this project) RfemNodeType to wrap the Dlubal.RFEM5.Node objects.
-
-
-            List<Dlubal.RFEM5.Line> RfemLineList = RfemLineArray.OfType<Dlubal.RFEM5.Line>().ToList(); // this isn't going to be fast.
-
-
-            return RfemLineList;
+            //list with all Rhino Curves is prepared for output
+            return rhOutputCurves;
 
 
         }
@@ -199,7 +235,7 @@ namespace GH_RFEM
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("bad6a0dd-e550-4d1e-9c75-15c03d6f73a1"); }
+            get { return new Guid("db6ea69a-2394-41b0-995e-4b985cbdeb70"); }
         }
     }
 }

@@ -34,12 +34,12 @@ namespace GH_RFEM
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             // to import lists or trees of values, modify the ParamAccess flag.
-            pManager.AddNumberParameter( "Spring X [N/m]", "uX", "set to -1=fixed (default), 0=free, other values create spring ", GH_ParamAccess.item, uX);
-            pManager.AddNumberParameter("Spring Y [N/m]", "uY", "set to 'true' if you want to release translation Y direction", GH_ParamAccess.item,uY);
-            pManager.AddNumberParameter("Spring Z [N/m]", "uZ", "set to 'true' if you want to release translation Z direction", GH_ParamAccess.item,uZ);
-            pManager.AddNumberParameter("Spring X rotation [Nm/rad]", "rX", "set to 'true' if you want to release rotation X direction", GH_ParamAccess.item,rX);
-            pManager.AddNumberParameter("Spring Y rotation [Nm/rad]", "rY", "set to 'true' if you want to release rotation Y direction", GH_ParamAccess.item,rY);
-            pManager.AddNumberParameter("Spring Z rotation [Nm/rad]", "rZ", "set to 'true' if you want to release rotation Z direction", GH_ParamAccess.item,rZ);
+            pManager.AddNumberParameter( "Spring X [N/m]", "uX", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, uX);
+            pManager.AddNumberParameter("Spring Y [N/m]", "uY", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item,uY);
+            pManager.AddNumberParameter("Spring Z [N/m]", "uZ", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item,uZ);
+            pManager.AddNumberParameter("Spring X rotation [Nm/rad]", "rX", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item,rX);
+            pManager.AddNumberParameter("Spring Y rotation [Nm/rad]", "rY", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item,rY);
+            pManager.AddNumberParameter("Spring Z rotation [Nm/rad]", "rZ", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item,rZ);
             pManager.AddTextParameter("Comment", "Comment", "This text will be written in 'comments' parameter in RFEM data", GH_ParamAccess.item,Comment);
 
         }

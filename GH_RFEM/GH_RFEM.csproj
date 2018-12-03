@@ -68,6 +68,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Properties_SupportNodal.cs" />
     <Compile Include="Properties_Material_Cat.cs" />
     <Compile Include="Properties_Hinge.cs" />
     <Compile Include="Nodes_output_test.cs" />

@@ -17,8 +17,12 @@ namespace GH_RFEM
         //definition of RFEM and input variables used in further methods
         IApplication app = null;
         IModel model = null;
+
+        //defining input variables and default values of those
         bool run = false;
         double segmentLength = 1;
+        double srfThickness = 0.2;
+        string srfMaterial = "NameID | Beton C30/37@TypeID|CONCRETE @NormID|DIN 1045-1 - 08";
 
         //cycling through all Surfaces and creating RFEM objects;
         int nodeCount = 1;
@@ -38,9 +42,9 @@ namespace GH_RFEM
         /// new tabs/panels will automatically be created.
         /// </summary>
         public RFEM_Surface()
-          : base("Surface RFEM", "RFEM Srf",
+          : base("Surface RFEM", "RFEM Srf Write",
               "Create RFEM Surfaces from Rhino Surfaces",
-              "RFEM", "Elements")
+              "RFEM", "Write")
         {
         }
 
@@ -54,7 +58,9 @@ namespace GH_RFEM
             // All parameters must have the correct access type. If you want 
             // to import lists or trees of values, modify the ParamAccess flag.
             pManager.AddSurfaceParameter("Surface", "Surfaces", "Input Rhino planar sufaces you want to create as RFEM Surfaces", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Segment length", "MaxSegmentLength[m]", "Any edges with splines/circles/arcs will be simplified as segments with maximum length described in this parameter", GH_ParamAccess.item, 1);
+            pManager.AddNumberParameter("Segment length", "MaxSegmentLength[m]", "Any edges with splines/circles/arcs will be simplified as segments with maximum length described in this parameter", GH_ParamAccess.item, segmentLength);
+            pManager.AddNumberParameter("Surface Thickness", "Thickness[m]", "Surfaces are created as isotropic planar surface with thickness[m] assigned in this parameters", GH_ParamAccess.item, srfThickness);
+            pManager.AddTextParameter("Surface Material", "Material[code]", "Material TextID according to Dlubal RFEM naming system (see their API documentation. \n examples:  \n NameID|Beton C30/37@TypeID|CONCRETE@NormID|EN 1992-1-1 \n NameID|Baustahl S 235@TypeID|STEEL@NormID|EN 1993-1-1 \n NameID|Pappel und Nadelholz C24@TypeID|CONIFEROUS@NormID|EN 1995-1-1", GH_ParamAccess.item, srfMaterial);
             pManager.AddBooleanParameter("Run", "Toggle", "Toggles whether the Surfaces are written to RFEM", GH_ParamAccess.item, false);
 
             // If you want to change properties of certain parameters, 
@@ -94,19 +100,21 @@ namespace GH_RFEM
             // When data cannot be extracted from a parameter, we should abort this method.
             if (!DA.GetDataList<Rhino.Geometry.Brep>(0, rhino_surface)) return;
             DA.GetData(1, ref segmentLength);
-            DA.GetData(2, ref run);
+            DA.GetData(2, ref srfThickness);
+            DA.GetData(3, ref srfMaterial);
+            DA.GetData(4, ref run);
 
             // The actual functionality will be in a method defined below. This is where we run it
             if (run == true)
             {
-                RfemSurfaces = CreateRfemSurfaces(rhino_surface);
+                RfemSurfaces = CreateRfemSurfaces(rhino_surface, srfThickness, srfMaterial);
             }
 
             // Finally assign the processed data to the output parameter.
             //DA.SetData(0, RfemNodes);
         }
 
-        private List<Dlubal.RFEM5.Surface> CreateRfemSurfaces(List<Rhino.Geometry.Brep> Rh_Srf)
+        private List<Dlubal.RFEM5.Surface> CreateRfemSurfaces(List<Rhino.Geometry.Brep> Rh_Srf, double srfThicknessInMethod, string srfMaterialTextDescription)
         {
             //start by reducing the input curves to simple Surfaces with start/end points
             List<Rhino.Geometry.Curve> RhSimpleLines = new List<Rhino.Geometry.Curve>();
@@ -129,7 +137,7 @@ namespace GH_RFEM
             Material material = new Material
             {
                 No = 1,
-                TextID = "NameID|Beton C30/37@TypeID|CONCRETE@NormID|DIN 1045-1 - 08"
+                TextID = srfMaterialTextDescription
             };
 
             Dlubal.RFEM5.Surface[] RfemSurfaceArray = new Dlubal.RFEM5.Surface[Rh_Srf.Count];
@@ -138,7 +146,6 @@ namespace GH_RFEM
             {
 
                 Rhino.Geometry.Curve[] curves = RhSingleSurface.DuplicateEdgeCurves(true);
-                //double tol = doc.ModelAbsoluteTolerance * 2.1;
                 curves = Rhino.Geometry.Curve.JoinCurves(curves);
 
                 foreach(Rhino.Geometry.Curve RhSingleCurve in curves)
@@ -244,20 +251,6 @@ namespace GH_RFEM
 
                         }
 
-                        /*
-                        try
-                        {
-
-                            
-                            // finish modification - RFEM regenerates the data
-                            //data.FinishModification();
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        }
-                       */
-
                     }
 
                     int surfaceFirstLine = lineCount - RhSimpleLines.Count;
@@ -279,7 +272,7 @@ namespace GH_RFEM
                         StiffnessType = SurfaceStiffnessType.StandardStiffnessType,
                     };
                     surfaceData.Thickness.Type = SurfaceThicknessType.ConstantThicknessType;
-                    surfaceData.Thickness.Constant = 0.2;
+                    surfaceData.Thickness.Constant = srfThicknessInMethod;
 
                     try
                     {

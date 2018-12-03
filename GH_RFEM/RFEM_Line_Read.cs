@@ -12,11 +12,13 @@ using System.Windows.Forms;
 
 namespace GH_RFEM
 {
-    public class RFEM_Node : GH_Component
+    public class RFEM_Line_Read : GH_Component
     {
-        //definition of RFEM variables used in further methods
+        //definition of RFEM and input variables used in further methods
         IApplication app = null;
         IModel model = null;
+        bool run = false;
+        double segmentLength = 1;
 
 
         /// <summary>
@@ -26,10 +28,10 @@ namespace GH_RFEM
         /// Subcategory the panel. If you use non-existing tab or panel names, 
         /// new tabs/panels will automatically be created.
         /// </summary>
-        public RFEM_Node()
-          : base("Node RFEM", "RFEM Nd",
-              "Create RFEM nodes from Rhino points",
-              "RFEM", "Elements")
+        public RFEM_Line_Read()
+          : base("Read Lines from RFEM", "RFEM Ln Read",
+              "Create Rhino lines from RFEM data",
+              "RFEM", "Read")
         {
         }
 
@@ -42,8 +44,7 @@ namespace GH_RFEM
             // You can often supply default values when creating parameters.
             // All parameters must have the correct access type. If you want 
             // to import lists or trees of values, modify the ParamAccess flag.
-            pManager.AddPointParameter("Point", "Point", "Input Rhino points you want to create as RFEM notes", GH_ParamAccess.list);
-            pManager.AddBooleanParameter("Run", "Toggle", "Toggles whether the nodes are written to RFEM", GH_ParamAccess.item, false);
+            pManager.AddBooleanParameter("Run", "Toggle", "Toggles whether the lines are written to RFEM", GH_ParamAccess.item, false);
 
             // If you want to change properties of certain parameters, 
             // you can use the pManager instance to access them by index:
@@ -58,7 +59,7 @@ namespace GH_RFEM
             // Use the pManager object to register your output parameters.
             // Output parameters do not have default values, but they too must have the correct access type.
 
-            //pManager.AddGenericParameter("RFEM nodes", "RfNd", "RFEM nodes for export in RFEM", GH_ParamAccess.list);
+            pManager.AddCurveParameter("Rhino curves", "Curves", "Rhino curves read from RFEM", GH_ParamAccess.list);
 
             // Sometimes you want to hide a specific parameter from the Rhino preview.
             // You can use the HideParameter() method as a quick way:
@@ -75,27 +76,29 @@ namespace GH_RFEM
         {
             // First, we need to retrieve all data from the input parameters.
             // We'll start by declaring variables and assigning them starting values.
-            List<Rhino.Geometry.Point3d> rhino_points3d = new List<Point3d>();
-            bool run = false;
-            List<RfemNodeType> RfemNodes = new List<RfemNodeType>();
+            List<Rhino.Geometry.Curve> RhinoCurves = new List<Curve>();
+            string lineList = "all";
+
 
             // Then we need to access the input parameters individually. 
             // When data cannot be extracted from a parameter, we should abort this method.
-            if (!DA.GetDataList<Rhino.Geometry.Point3d>(0, rhino_points3d)) return;
-            DA.GetData(1,ref run);
+            DA.GetData(0, ref run);
 
             // The actual functionality will be in a method defined below. This is where we run it
             if (run == true)
             {
-                RfemNodes = CreateRfemNodes(rhino_points3d);
+                RhinoCurves = CreateRhinoCurves(lineList);
             }
 
             // Finally assign the processed data to the output parameter.
-            //DA.SetData(0, RfemNodes);
+            DA.SetDataList(0, RhinoCurves);
         }
 
-        private List<RfemNodeType> CreateRfemNodes(List<Point3d> Rh_pt3d)
+        private List<Rhino.Geometry.Curve> CreateRhinoCurves(string selectedLineList)
         {
+            //defining the list with lines that will have to be returned later on
+            List<Rhino.Geometry.Curve> rhOutputCurves = new List<Rhino.Geometry.Curve>();
+
 
             // Gets interface to running RFEM application.
             app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
@@ -108,28 +111,67 @@ namespace GH_RFEM
             // Gets interface to model data.
             IModelData data = model.GetModelData();
 
-            //Create new array for RFEM point objects
-            Dlubal.RFEM5.Node[] RfemNodeArray = new Dlubal.RFEM5.Node[Rh_pt3d.Count];
+            //Create new array for Rhino Curve objects
+            List<Rhino.Geometry.Curve> rhinoLineList = new List<Rhino.Geometry.Curve>();
+            
+            //Create new array for Rhino point objects
+            List<Rhino.Geometry.Point3d> rhinoPointArray = new List<Rhino.Geometry.Point3d>();
 
-            ///This version writes nodes one-by-one because the data.SetNodes() for
-            ///array appears not to be working
+
             try
             {
-                // modification
-                // Sets all objects to model data.
-                 data.PrepareModification();
-                
-                for (int index = 0; index < Rh_pt3d.Count; index++)
+                for (int index = 0; index < data.GetLineCount(); index++)
                 {
-                    RfemNodeArray[index].No = index+1;
-                    RfemNodeArray[index].X = Rh_pt3d[index].X;
-                    RfemNodeArray[index].Y = Rh_pt3d[index].Y;
-                    RfemNodeArray[index].Z = Rh_pt3d[index].Z;
-                    data.SetNode(RfemNodeArray[index]);
-                }
 
-                // finish modification - RFEM regenerates the data
-                data.FinishModification();
+                    Dlubal.RFEM5.Line currentLine = data.GetLine(index, ItemAt.AtIndex).GetData();
+
+                    // the code below converts string describing nodes used in line definition into
+                    // list fo all used node numbers. e.g. converts "1,2,4-7,9" into "1,2,4,5,6,7,9"
+                    string lineNodes = currentLine.NodeList;
+                    List<int> nodesList = new List<int>();
+
+                    foreach (string tempLineNode in lineNodes.Split(','))
+                    {
+                        if (tempLineNode.Contains('-'))
+                        {
+                            string[] tempLineNodeDashes = new string[2];
+                            tempLineNodeDashes = tempLineNode.Split('-');
+                            int startNumber = Int32.Parse(tempLineNodeDashes[0]);
+                            int endNumber = Int32.Parse(tempLineNodeDashes[1]);
+
+                            for (int i = startNumber; i <= endNumber; i++)
+                            {
+                                nodesList.Add(i);
+                            }
+                        }
+                        else
+                        {
+                            nodesList.Add(Int32.Parse(tempLineNode));
+                        }
+                    }
+
+                    //currently component only reads "polyline" type from RFEM, i.e. straight lines
+
+                    if (currentLine.Type == LineType.PolylineType)
+                    {
+
+                        for (int i = 0; i < nodesList.Count-1; i++)
+                        {
+                            //getting data for start point and end point from RFEM
+                            Dlubal.RFEM5.Node rfemStartPoint = data.GetNode(nodesList[i], ItemAt.AtNo).GetData();
+                            Dlubal.RFEM5.Node rfemEndPoint = data.GetNode(nodesList[i+1], ItemAt.AtNo).GetData();
+
+                            //creating Rhino Objects
+                            Point3d rhinoStartPoint = new Point3d(rfemStartPoint.X, rfemStartPoint.Y, rfemStartPoint.Z);
+                            Point3d rhinoEndPoint = new Point3d(rfemEndPoint.X, rfemEndPoint.Y, rfemEndPoint.Z);
+
+                            Rhino.Geometry.LineCurve currentRhinoCurve = new Rhino.Geometry.LineCurve(rhinoStartPoint,rhinoEndPoint);
+
+                            rhOutputCurves.Add(currentRhinoCurve);
+
+                        }
+                    }
+                }
             }
 
             catch (Exception ex)
@@ -142,30 +184,19 @@ namespace GH_RFEM
 
             // Unlocks licence and releases interface to RFEM application.
             if (app != null)
-                {
-                    app.UnlockLicense();
-                    app = null;
-                }
+            {
+                app.UnlockLicense();
+                app = null;
+            }
 
             // Cleans Garbage Collector and releases all cached COM interfaces.
             System.GC.Collect();
             System.GC.WaitForPendingFinalizers();
 
-            ///the lines below outputs created RFEM nodes in output parameter
-            ///current funcionality does not use this
-            ///it uses a custom class (written within this project) RfemNodeType to wrap the Dlubal.RFEM5.Node objects.
-            List<Dlubal.RFEM5.Node> RfemNodeList = RfemNodeArray.OfType<Dlubal.RFEM5.Node>().ToList(); // this isn't going to be fast.
-            List<RfemNodeType> RfemNodeGHParamList = new List<RfemNodeType>();
+            //list with all Rhino Curves is prepared for output
+            return rhOutputCurves;
 
-            foreach (Dlubal.RFEM5.Node rfemNode in RfemNodeList)
-            {
-                RfemNodeType rfemNodeWrapper = new RfemNodeType(rfemNode);
-                RfemNodeGHParamList.Add(rfemNodeWrapper);
-            }
 
-            return RfemNodeGHParamList; 
-
-                            
         }
 
 
@@ -191,7 +222,7 @@ namespace GH_RFEM
             {
                 // You can add image files to your project resources and access them like this:
                 //return Resources.IconForThisComponent;
-                return GH_RFEM.Properties.Resources.icon_node;
+                return GH_RFEM.Properties.Resources.icon_line;
             }
         }
 
@@ -202,7 +233,7 @@ namespace GH_RFEM
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("4f8440de-7562-45a3-a869-d9a4a01ab513"); }
+            get { return new Guid("db6ea69a-2394-41b0-995e-4b985cbdeb70"); }
         }
     }
 }

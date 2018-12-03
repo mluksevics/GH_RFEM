@@ -68,6 +68,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="RFEM_Line_Read.cs" />
+    <Compile Include="RFEM_Node_Read.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -76,8 +78,8 @@
     <Compile Include="RFEM_Surface.cs" />
     <Compile Include="RfemNodeParam.cs" />
     <Compile Include="RfemNodeType.cs" />
-    <Compile Include="RFEM_Line.cs" />
-    <Compile Include="RFEM_Node.cs" />
+    <Compile Include="RFEM_Line_Write.cs" />
+    <Compile Include="RFEM_Node_Write.cs" />
     <Compile Include="GH_RFEMInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

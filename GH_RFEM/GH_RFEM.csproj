@@ -68,6 +68,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Properties_Material_Cat.cs" />
+    <Compile Include="Properties_Hinge.cs" />
     <Compile Include="Nodes_output_test.cs" />
     <Compile Include="RFEM_Write.cs" />
     <Compile Include="RFEM_Line_Read.cs" />

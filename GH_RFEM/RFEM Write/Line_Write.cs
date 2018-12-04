@@ -14,13 +14,6 @@ namespace GH_RFEM
 {
     public class RFEM_Line_Write : GH_Component
     {
-        //definition of RFEM and input variables used in further methods
-        IApplication app = null;
-        IModel model = null;
-        bool run = false;
-        double segmentLength = 1;
-
-
         /// <summary>
         /// Each implementation of GH_Component must provide a public 
         /// constructor without any arguments.
@@ -38,6 +31,11 @@ namespace GH_RFEM
         /// <summary>
         /// Registers all the input parameters for this component.
         /// </summary>
+        /// 
+        bool run = false;
+        double segmentLength = 1;
+        string commentNodeInput = "";
+
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             // Use the pManager object to register your input parameters.
@@ -45,12 +43,17 @@ namespace GH_RFEM
             // All parameters must have the correct access type. If you want 
             // to import lists or trees of values, modify the ParamAccess flag.
             pManager.AddCurveParameter("Curve", "Curve", "Input Rhino curves you want to create as RFEM lines", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Segment length", "MaxSegmentLength[m]", "Any splines/circles/arcs will be simplified as segments with maximum length described in this parameter", GH_ParamAccess.item, 1);
-            pManager.AddBooleanParameter("Run", "Toggle", "Toggles whether the lines are written to RFEM", GH_ParamAccess.item, false);
+            pManager.AddNumberParameter("Segment length", "MaxSegmentLength[m]", "Any splines/circles/arcs will be simplified as segments with maximum length described in this parameter", GH_ParamAccess.item, segmentLength);
+            pManager.AddGenericParameter("RFEM line support", "Line support", "Leave empty if no support, use 'Line Support' node to generate support", GH_ParamAccess.item);
+            pManager.AddTextParameter("Text to be written in RFEM comments field", "Comment", "Text written in RFEM comments field", GH_ParamAccess.item);
+            pManager.AddBooleanParameter("Run", "Toggle", "Toggles whether the lines are written to RFEM", GH_ParamAccess.item, run);
+
 
             // If you want to change properties of certain parameters, 
             // you can use the pManager instance to access them by index:
-            //pManager[0].Optional = true;
+            pManager[1].Optional = true;
+            pManager[2].Optional = true;
+            pManager[3].Optional = true;
         }
 
         /// <summary>
@@ -138,14 +141,13 @@ namespace GH_RFEM
             Dlubal.RFEM5.Line[] RfemLineArray = new Dlubal.RFEM5.Line[RhSimpleLines.Count+1];
             Dlubal.RFEM5.Node[] RfemNodeArray = new Dlubal.RFEM5.Node[RhSimpleLines.Count * 2+2];
 
-            
             // Gets interface to running RFEM application.
-            app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
+            IApplication app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
             // Locks RFEM licence
             app.LockLicense();
 
             // Gets interface to active RFEM model.
-            model = app.GetActiveModel();
+            IModel model = app.GetActiveModel();
 
             // Gets interface to model data.
             IModelData data = model.GetModelData();

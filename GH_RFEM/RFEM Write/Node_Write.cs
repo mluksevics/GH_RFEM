@@ -59,7 +59,7 @@ namespace GH_RFEM
         /// 
         //declaring output parameters
         List<Dlubal.RFEM5.Node> RfemNodes = new List<Dlubal.RFEM5.Node>();
-        bool success = false;
+        bool writeSuccess = false;
 
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
@@ -89,14 +89,22 @@ namespace GH_RFEM
             // The actual functionality will be in a method defined below. This is where we run it
             if (run == true)
             {
+                //clears and resets all output parameters:
+                RfemNodes.Clear();
+                writeSuccess = false;
+
+                //runs the method for creating RFEM nodes
                 RfemNodes = CreateRfemNodes(rhinoPointsInput, rfemNodalSupportInput, commentsInput);
             }
 
             // Finally assign the processed data to the output parameter.
             DA.SetDataList(0, RfemNodes);
-            DA.SetData(1, success);
+            DA.SetData(1, writeSuccess);
 
+            // clear and reset all input parameters
             rhinoPointsInput.Clear();
+            commentsInput = "";
+            rfemNodalSupportInput = new Dlubal.RFEM5.NodalSupport();
         }
 
         private List<Dlubal.RFEM5.Node> CreateRfemNodes(List<Point3d> Rh_pt3d, Dlubal.RFEM5.NodalSupport rfemNodalSupportMethodIn, string commentsListMethodIn)
@@ -175,8 +183,6 @@ namespace GH_RFEM
                 // finish modification - RFEM regenerates the data
                 data.FinishModification();
 
-                //output 'success' as true 
-                success = true;
             }
 
             catch (Exception ex)
@@ -199,8 +205,10 @@ namespace GH_RFEM
             System.GC.WaitForPendingFinalizers();
 
             ///the lines below outputs created RFEM nodes in output parameter
-            List<Dlubal.RFEM5.Node> RfemNodeList = RfemNodeArray.OfType<Dlubal.RFEM5.Node>().ToList(); 
+            List<Dlubal.RFEM5.Node> RfemNodeList = RfemNodeArray.OfType<Dlubal.RFEM5.Node>().ToList();
 
+            //output 'success' as true 
+            writeSuccess = true;
             return RfemNodeList;
 
         }

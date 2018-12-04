@@ -126,13 +126,6 @@ namespace GH_RFEM
             ///current funcionality does not use this
             ///it uses a custom class (written within this project) RfemNodeType to wrap the Dlubal.RFEM5.Node objects.
             List<Dlubal.RFEM5.Node> RfemNodeList = RfemNodeArray.OfType<Dlubal.RFEM5.Node>().ToList(); // this isn't going to be fast.
-            List<RfemNodeType> RfemNodeGHParamList = new List<RfemNodeType>();
-
-            foreach (Dlubal.RFEM5.Node rfemNode in RfemNodeList)
-            {
-                RfemNodeType rfemNodeWrapper = new RfemNodeType(rfemNode);
-                RfemNodeGHParamList.Add(rfemNodeWrapper);
-            }
 
             return RfemNodeList;
 

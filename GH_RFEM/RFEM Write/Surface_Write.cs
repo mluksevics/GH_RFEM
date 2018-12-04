@@ -126,6 +126,9 @@ namespace GH_RFEM
             //start by reducing the input curves to simple Surfaces with start/end points
             List<Rhino.Geometry.Curve> RhSimpleLines = new List<Rhino.Geometry.Curve>();
 
+            //array for created surfaces
+            Dlubal.RFEM5.Surface[] RfemSurfaceArray = new Dlubal.RFEM5.Surface[Rh_Srf.Count];
+
             // Gets interface to running RFEM application.
             IApplication app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
             // Locks RFEM licence
@@ -177,7 +180,12 @@ namespace GH_RFEM
                 //prepares model for modification.
                 data.PrepareModification();
 
-                Dlubal.RFEM5.Surface[] RfemSurfaceArray = new Dlubal.RFEM5.Surface[Rh_Srf.Count];
+            // Creates material used for all surfaces
+            Dlubal.RFEM5.Material material = new Dlubal.RFEM5.Material();
+            material.No = currentNewMaterialNo;
+            material.TextID = srfMaterialTextDescription;
+            material.ModelType = MaterialModelType.IsotropicLinearElasticType;
+            data.SetMaterial(material);
 
             foreach (Rhino.Geometry.Brep RhSingleSurface in Rh_Srf)
             {
@@ -310,10 +318,6 @@ namespace GH_RFEM
                     }
                     surfaceLineList = surfaceLineList + surfaceLastLine.ToString();
 
-                    // Creates material used for all surfaces
-                    Dlubal.RFEM5.Material material = new Dlubal.RFEM5.Material();
-                    material.No = currentNewMaterialNo;
-                    material.TextID = srfMaterialTextDescription;
 
                     //defines surface data
                     Dlubal.RFEM5.Surface surfaceData = new Dlubal.RFEM5.Surface();
@@ -323,16 +327,12 @@ namespace GH_RFEM
                     surfaceData.BoundaryLineList = surfaceLineList;
                     surfaceData.StiffnessType = SurfaceStiffnessType.StandardStiffnessType;
                     surfaceData.Comment = srfCommentMethodIn;
-                    surfaceData.Thickness.Type = SurfaceThicknessType.ConstantThicknessType;
+                    //surfaceData.Thickness.Type = SurfaceThicknessType.ConstantThicknessType;
                     surfaceData.Thickness.Constant = srfThicknessInMethod;
 
                     try
                     {
-                        // modification
                         ISurface surface = data.SetSurface(surfaceData);
-                        // finish modification - RFEM regenerates the data
-
-
                     }
                     catch (Exception ex)
                     {

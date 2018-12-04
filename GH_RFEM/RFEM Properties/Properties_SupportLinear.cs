@@ -51,7 +51,7 @@ namespace GH_RFEM
         Dlubal.RFEM5.LineSupport linearSupport = new Dlubal.RFEM5.LineSupport();
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
-            pManager.AddGenericParameter("RFEM Nodal Support definition", "Nodal Support", "RFEM nodal support definition for use with node that writes nodes", GH_ParamAccess.item);
+            pManager.AddGenericParameter("RFEM Linear Support definition", "Line Support", "RFEM linear support definition for use with node that writes nodes", GH_ParamAccess.item);
 
         }
 

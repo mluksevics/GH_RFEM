@@ -12,7 +12,7 @@ using System.Windows.Forms;
 
 namespace GH_RFEM
 {
-    public class RFEM_Surface : GH_Component
+    public class Surface_Write : GH_Component
     {
         //definition of RFEM and input variables used in further methods
         IApplication app = null;
@@ -41,7 +41,7 @@ namespace GH_RFEM
         /// Subcategory the panel. If you use non-existing tab or panel names, 
         /// new tabs/panels will automatically be created.
         /// </summary>
-        public RFEM_Surface()
+        public Surface_Write()
           : base("Surface RFEM", "RFEM Srf Write",
               "Create RFEM Surfaces from Rhino Surfaces",
               "RFEM", "Write")

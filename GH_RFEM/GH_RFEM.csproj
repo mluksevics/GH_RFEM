@@ -75,16 +75,17 @@
     <Compile Include="RFEM Properties\Properties_Hinge.cs" />
     <Compile Include="RFEM Test Area\Nodes_output_test.cs" />
     <Compile Include="RFEM Test Area\RFEM_Write.cs" />
-    <Compile Include="RFEM Read\RFEM_Line_Read.cs" />
-    <Compile Include="RFEM Read\RFEM_Node_Read.cs" />
+    <Compile Include="RFEM Read\Line_Read.cs" />
+    <Compile Include="RFEM Read\Node_Read.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
-    <Compile Include="RFEM Write\RFEM_Surface.cs" />
-    <Compile Include="RFEM Write\RFEM_Line_Write.cs" />
-    <Compile Include="RFEM Write\RFEM_Node_Write.cs" />
+    <Compile Include="RFEM Write\Model_Clear.cs" />
+    <Compile Include="RFEM Write\Surface_Write.cs" />
+    <Compile Include="RFEM Write\Line_Write.cs" />
+    <Compile Include="RFEM Write\Node_Write.cs" />
     <Compile Include="GH_RFEMInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

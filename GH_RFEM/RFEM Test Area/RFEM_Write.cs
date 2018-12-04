@@ -10,7 +10,7 @@ using System.Windows.Forms;
 
 namespace GH_RFEM
 {
-    public class RFEM_Write : GH_Component
+    public class Line_Write : GH_Component
     {
         //definition of variables used in further functions
         IApplication app = null;
@@ -19,7 +19,7 @@ namespace GH_RFEM
         /// <summary>
         /// Initializes a new instance of the MyComponent1 class.
         /// </summary>
-        public RFEM_Write()
+        public Line_Write()
           : base("Write to RFEM", "RfWrite",
               "Write Grasshopper Data to RFEM",
               "RFEM", "Elements")

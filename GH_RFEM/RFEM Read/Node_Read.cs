@@ -12,7 +12,7 @@ using System.Windows.Forms;
 
 namespace GH_RFEM
 {
-    public class RFEM_Node_Read : GH_Component
+    public class Node_Read : GH_Component
     {
         //definition of RFEM variables used in further methods
         IApplication app = null;
@@ -26,7 +26,7 @@ namespace GH_RFEM
         /// Subcategory the panel. If you use non-existing tab or panel names, 
         /// new tabs/panels will automatically be created.
         /// </summary>
-        public RFEM_Node_Read()
+        public Node_Read()
           : base("Node RFEM", "RFEM Nd Read",
               "Create Rhino points from RFEM nodes",
               "RFEM", "Read")

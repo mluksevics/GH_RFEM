@@ -32,9 +32,13 @@ namespace GH_RFEM
         /// Registers all the input parameters for this component.
         /// </summary>
         /// 
+        // define all variables where input data is stored
+        List<Rhino.Geometry.Curve> rhinoCurvesInput = new List<Curve>();
         bool run = false;
-        double segmentLength = 1;
-        string commentNodeInput = "";
+        double segmentLengthInput = 1;
+        string commentsInput = "";
+        Dlubal.RFEM5.LineSupport rfemLineSupportInput = new Dlubal.RFEM5.LineSupport();
+
 
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
@@ -43,7 +47,7 @@ namespace GH_RFEM
             // All parameters must have the correct access type. If you want 
             // to import lists or trees of values, modify the ParamAccess flag.
             pManager.AddCurveParameter("Curve", "Curve", "Input Rhino curves you want to create as RFEM lines", GH_ParamAccess.list);
-            pManager.AddNumberParameter("Segment length", "MaxSegmentLength[m]", "Any splines/circles/arcs will be simplified as segments with maximum length described in this parameter", GH_ParamAccess.item, segmentLength);
+            pManager.AddNumberParameter("Segment length", "MaxSegmentLength[m]", "Any splines/circles/arcs will be simplified as segments with maximum length described in this parameter", GH_ParamAccess.item, segmentLengthInput);
             pManager.AddGenericParameter("RFEM line support", "Line support", "Leave empty if no support, use 'Line Support' node to generate support", GH_ParamAccess.item);
             pManager.AddTextParameter("Text to be written in RFEM comments field", "Comment", "Text written in RFEM comments field", GH_ParamAccess.item);
             pManager.AddBooleanParameter("Run", "Toggle", "Toggles whether the lines are written to RFEM", GH_ParamAccess.item, run);
@@ -59,16 +63,16 @@ namespace GH_RFEM
         /// <summary>
         /// Registers all the output parameters for this component.
         /// </summary>
+        /// 
+        // defining variables for output
+        bool writeSuccess = false;
+        List<Dlubal.RFEM5.Line> RfemLines = new List<Dlubal.RFEM5.Line>();
+
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             // Use the pManager object to register your output parameters.
-            // Output parameters do not have default values, but they too must have the correct access type.
-
-            //pManager.AddGenericParameter("RFEM lines", "RfLn", "RFEM lines for export in RFEM", GH_ParamAccess.list);
-
-            // Sometimes you want to hide a specific parameter from the Rhino preview.
-            // You can use the HideParameter() method as a quick way:
-            //pManager.HideParameter(0);
+            pManager.AddGenericParameter("RFEM lines", "RfLn", "Generated RFEM lines", GH_ParamAccess.list);
+            pManager.AddBooleanParameter("Success", "Success", "Returns 'true' if nodes successfully writen, otherwise it is 'false'", GH_ParamAccess.item);
         }
 
         /// <summary>
@@ -81,26 +85,37 @@ namespace GH_RFEM
         {
             // First, we need to retrieve all data from the input parameters.
             // We'll start by declaring variables and assigning them starting values.
-            List<Rhino.Geometry.Curve> rhino_curve = new List<Curve>();
-            List<Dlubal.RFEM5.Line> RfemLines = new List<Dlubal.RFEM5.Line>();
 
             // Then we need to access the input parameters individually. 
             // When data cannot be extracted from a parameter, we should abort this method.
-            if (!DA.GetDataList<Rhino.Geometry.Curve>(0, rhino_curve)) return;
-            DA.GetData(1, ref segmentLength);
-            DA.GetData(2, ref run);
+            if (!DA.GetDataList<Rhino.Geometry.Curve>(0, rhinoCurvesInput)) return;
+            DA.GetData(1, ref segmentLengthInput);
+            DA.GetData(2, ref rfemLineSupportInput);
+            DA.GetData(3, ref commentsInput);
+            DA.GetData(4, ref run);
+
 
             // The actual functionality will be in a method defined below. This is where we run it
             if (run == true)
             {
-                RfemLines = CreateRfemLines(rhino_curve);
+                //clears and resets all output parameters:
+                RfemLines.Clear();
+                writeSuccess = false;
+
+                RfemLines = CreateRfemLines(rhinoCurvesInput, rfemLineSupportInput, commentsInput);
             }
 
             // Finally assign the processed data to the output parameter.
-            //DA.SetData(0, RfemNodes);
+            DA.SetDataList(0, RfemLines);
+            DA.SetData(1, writeSuccess);
+
+            // clear and reset all input parameters
+            rhinoCurvesInput.Clear();
+            commentsInput = "";
+            rfemLineSupportInput = new Dlubal.RFEM5.LineSupport();
         }
 
-        private List<Dlubal.RFEM5.Line> CreateRfemLines(List<Rhino.Geometry.Curve> Rh_Crv)
+        private List<Dlubal.RFEM5.Line> CreateRfemLines(List<Rhino.Geometry.Curve> Rh_Crv, Dlubal.RFEM5.LineSupport rfemLineSupportMethodIn, string commentsListMethodIn)
         {
             //start by reducing the input curves to simple lines with start/end points
             List<Rhino.Geometry.Curve> RhSimpleLines = new List<Rhino.Geometry.Curve>();
@@ -126,7 +141,7 @@ namespace GH_RFEM
                 else
                 {
                     
-                    foreach (Rhino.Geometry.Curve explodedLine in RhSingleCurve.ToPolyline(0, 0, 3.14, 1, 0, 0, 0, segmentLength, true).DuplicateSegments())
+                    foreach (Rhino.Geometry.Curve explodedLine in RhSingleCurve.ToPolyline(0, 0, 3.14, 1, 0, 0, 0, segmentLengthInput, true).DuplicateSegments())
                     {
                         RhSimpleLines.Add(explodedLine);
                     }
@@ -152,6 +167,34 @@ namespace GH_RFEM
             // Gets interface to model data.
             IModelData data = model.GetModelData();
 
+            // Gets Max line Number
+            int currentNewLineNo = 1;
+            int totalLinesCount = data.GetLines().Count();
+            if (totalLinesCount != 0)
+            {
+                int lastLineNo = data.GetLine(totalLinesCount - 1, ItemAt.AtIndex).GetData().No;
+                currentNewLineNo = lastLineNo + 1;
+            }
+
+            // Gets Max node Number
+            int currentNewNodeNo = 1;
+            int totalNodesCount = data.GetNodes().Count();
+            if (totalNodesCount != 0)
+            {
+                int lastNodeNo = data.GetNode(totalNodesCount - 1, ItemAt.AtIndex).GetData().No;
+                currentNewNodeNo = lastNodeNo + 1;
+            }
+
+            // Gets Max line support number
+            int currentNewLineSupportNo = 1;
+            int totalLineSupportsCount = data.GetLineSupports().Count();
+            if (totalLineSupportsCount != 0)
+            {
+                int lastLineSupportNo = data.GetLineSupport(totalLineSupportsCount - 1, ItemAt.AtIndex).GetData().No;
+                currentNewLineSupportNo = lastLineSupportNo + 1;
+            }
+
+
             // modification
             // Sets all objects to model data.
             data.PrepareModification();
@@ -164,18 +207,19 @@ namespace GH_RFEM
                 //cycling through all lines and creating RFEM objects;
                 int nodeCount = 1;
                 int lineCount = 1;
+                string createdLinesList = "";
 
                 for (int i = 1; i < RhSimpleLines.Count+1; i++)
                 {
                     startPoint = RhSimpleLines[i - 1].PointAtStart;
                     endPoint = RhSimpleLines[i - 1].PointAtEnd;
 
-                    RfemNodeArray[nodeCount].No = nodeCount;
+                    RfemNodeArray[nodeCount].No = currentNewNodeNo;
                     RfemNodeArray[nodeCount].X = startPoint.X;
                     RfemNodeArray[nodeCount].Y = startPoint.Y;
                     RfemNodeArray[nodeCount].Z = startPoint.Z;
 
-                    RfemNodeArray[nodeCount + 1].No = nodeCount + 1;
+                    RfemNodeArray[nodeCount + 1].No = currentNewNodeNo + 1;
                     RfemNodeArray[nodeCount + 1].X = endPoint.X;
                     RfemNodeArray[nodeCount + 1].Y = endPoint.Y;
                     RfemNodeArray[nodeCount + 1].Z = endPoint.Z;
@@ -185,15 +229,33 @@ namespace GH_RFEM
                     data.SetNode(RfemNodeArray[nodeCount + 1]);
 
 
-                    RfemLineArray[lineCount].No = lineCount;
+                    RfemLineArray[lineCount].No = currentNewLineNo;
                     RfemLineArray[lineCount].Type = LineType.PolylineType;
+                    RfemLineArray[lineCount].Comment = commentsListMethodIn;
                     RfemLineArray[lineCount].NodeList = $"{RfemNodeArray[nodeCount].No}, {RfemNodeArray[nodeCount + 1].No}";
 
                     data.SetLine(RfemLineArray[lineCount]);
 
+                    if (i == RhSimpleLines.Count)
+                    {
+                        createdLinesList = createdLinesList + currentNewLineNo.ToString();
+                    }
+                    else
+                    {
+                        createdLinesList = createdLinesList + currentNewLineNo.ToString() + ",";
+                    }
+
                     nodeCount = nodeCount + 2;
                     lineCount++;
+
+                    currentNewLineNo++;
+                    currentNewNodeNo = currentNewNodeNo + 2;
                 }
+
+                //addition of line supports
+                rfemLineSupportMethodIn.No = currentNewLineSupportNo;
+                rfemLineSupportMethodIn.LineList = createdLinesList;
+                data.SetLineSupport(ref rfemLineSupportMethodIn);
 
 
                 // finish modification - RFEM regenerates the data
@@ -226,7 +288,8 @@ namespace GH_RFEM
      
             List<Dlubal.RFEM5.Line> RfemLineList = RfemLineArray.OfType<Dlubal.RFEM5.Line>().ToList(); // this isn't going to be fast.
 
-           
+            //output 'success' as true 
+            writeSuccess = true;
             return RfemLineList;
 
 

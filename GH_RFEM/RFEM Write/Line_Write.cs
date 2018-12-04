@@ -103,11 +103,15 @@ namespace GH_RFEM
                 writeSuccess = false;
 
                 RfemLines = CreateRfemLines(rhinoCurvesInput, rfemLineSupportInput, commentsInput);
+                DA.SetData(1, writeSuccess);
+            }
+            else
+            {
+                DA.SetData(1, false);
             }
 
             // Finally assign the processed data to the output parameter.
             DA.SetDataList(0, RfemLines);
-            DA.SetData(1, writeSuccess);
 
             // clear and reset all input parameters
             rhinoCurvesInput.Clear();

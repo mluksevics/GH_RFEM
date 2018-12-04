@@ -108,11 +108,17 @@ namespace GH_RFEM
                 writeSuccess = false;
 
                 RfemSurfaces = CreateRfemSurfaces(rhino_surface, srfThickness, srfMaterial, commentsInput);
+                DA.SetData(1, writeSuccess);
             }
-
+            else
+            {
+                DA.SetData(1, false);
+            }
+            
             // Finally assign the processed data to the output parameter.
             DA.SetDataList(0, RfemSurfaces);
-            DA.SetData(1, writeSuccess);
+
+
 
             // clear and reset all input parameters
             rhino_surface.Clear();

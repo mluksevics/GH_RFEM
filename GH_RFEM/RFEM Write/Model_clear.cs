@@ -70,10 +70,15 @@ namespace GH_RFEM
 
                 //sets success to "true"
                 success = true;
+
+                //set data for output
+                DA.SetData(0, success);
+            }
+            else
+            {
+                DA.SetData(0, false);
             }
 
-            //set data for output
-            DA.SetData(0, success);
         }
 
         /// <summary>

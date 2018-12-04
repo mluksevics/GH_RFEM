@@ -95,11 +95,16 @@ namespace GH_RFEM
 
                 //runs the method for creating RFEM nodes
                 RfemNodes = CreateRfemNodes(rhinoPointsInput, rfemNodalSupportInput, commentsInput);
+                DA.SetData(1, writeSuccess);
+            }
+            else
+            {
+                DA.SetData(1, false);
             }
 
             // Finally assign the processed data to the output parameter.
             DA.SetDataList(0, RfemNodes);
-            DA.SetData(1, writeSuccess);
+
 
             // clear and reset all input parameters
             rhinoPointsInput.Clear();

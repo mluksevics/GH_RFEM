@@ -68,6 +68,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GetMaxRFEMnumbers.cs" />
     <Compile Include="RFEM Properties\Properties_Material_Cat.cs" />
     <Compile Include="RFEM Properties\Properties_SupportLinear.cs" />
     <Compile Include="RFEM Properties\Properties_SupportNodal.cs" />

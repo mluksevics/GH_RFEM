@@ -22,7 +22,7 @@ namespace GH_RFEM
         public Line_Write()
           : base("Write to RFEM", "RfWrite",
               "Write Grasshopper Data to RFEM",
-              "RFEM", "Elements")
+              "RFEM", "Test")
         {
         }
 

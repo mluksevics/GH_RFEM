@@ -29,7 +29,7 @@ namespace GH_RFEM
         public RFEM_Node()
           : base("Node RFEM", "RFEM Nd Write",
               "Create RFEM nodes from Rhino points",
-              "RFEM", "Elements")
+              "RFEM", "Test")
         {
         }
 

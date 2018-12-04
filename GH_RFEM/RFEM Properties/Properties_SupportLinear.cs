@@ -6,15 +6,15 @@ using Rhino.Geometry;
 
 namespace GH_RFEM
 {
-    public class Properties_SupportNodal : GH_Component
+    public class Properties_SupportLinear : GH_Component
     {
 
         /// <summary>
         /// Initializes a new instance of the Nodal Support class.
         /// </summary>
-        public Properties_SupportNodal()
-          : base("Nodal Support RFEM", "Nodal Support",
-              "Create Nodal support to be applied for nodes",
+        public Properties_SupportLinear()
+          : base("Linear Support RFEM", "Line Support",
+              "Create Linear support to be applied for line",
               "RFEM", "Properties")
         {
         }
@@ -34,12 +34,12 @@ namespace GH_RFEM
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             // to import lists or trees of values, modify the ParamAccess flag.
-            pManager.AddNumberParameter("Spring X [N/m]", "uX", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, uX);
-            pManager.AddNumberParameter("Spring Y [N/m]", "uY", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, uY);
-            pManager.AddNumberParameter("Spring Z [N/m]", "uZ", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, uZ);
-            pManager.AddNumberParameter("Spring X rotation [Nm/rad]", "rX", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, rX);
-            pManager.AddNumberParameter("Spring Y rotation [Nm/rad]", "rY", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, rY);
-            pManager.AddNumberParameter("Spring Z rotation [Nm/rad]", "rZ", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, rZ);
+            pManager.AddNumberParameter("Spring X [N/m2]", "uX", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, uX);
+            pManager.AddNumberParameter("Spring Y [N/m2]", "uY", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, uY);
+            pManager.AddNumberParameter("Spring Z [N/m2]", "uZ", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, uZ);
+            pManager.AddNumberParameter("Spring X rotation [Nm/rad/m]", "rX", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, rX);
+            pManager.AddNumberParameter("Spring Y rotation [Nm/rad/m]", "rY", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, rY);
+            pManager.AddNumberParameter("Spring Z rotation [Nm/rad/m]", "rZ", "set to -1=fixed (default), 0=free, other values create spring", GH_ParamAccess.item, rZ);
             pManager.AddTextParameter("Comment", "Comment", "This text will be written in 'comments' parameter in RFEM data", GH_ParamAccess.item, Comment);
 
         }
@@ -48,7 +48,7 @@ namespace GH_RFEM
         /// Registers all the output parameters for this component.
         /// </summary>
         /// 
-        Dlubal.RFEM5.NodalSupport nodalSupport = new Dlubal.RFEM5.NodalSupport();
+        Dlubal.RFEM5.LineSupport linearSupport = new Dlubal.RFEM5.LineSupport();
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             pManager.AddGenericParameter("RFEM Nodal Support definition", "Nodal Support", "RFEM nodal support definition for use with node that writes nodes", GH_ParamAccess.item);
@@ -72,15 +72,15 @@ namespace GH_RFEM
             DA.GetData(6, ref Comment);
 
             //linearSupport.No numbers of supports not assigned here - these are assigned when writing nodes
-            nodalSupport.SupportConstantX = uX;
-            nodalSupport.SupportConstantY = uY;
-            nodalSupport.SupportConstantZ = uZ;
-            nodalSupport.RestraintConstantX = rX;
-            nodalSupport.RestraintConstantY = rY;
-            nodalSupport.RestraintConstantZ = rZ;
-            nodalSupport.Comment = Comment;
+            linearSupport.SupportConstantX = uX;
+            linearSupport.SupportConstantY = uY;
+            linearSupport.SupportConstantZ = uZ;
+            linearSupport.RestraintConstantX = rX;
+            linearSupport.RestraintConstantY = rY;
+            linearSupport.RestraintConstantZ = rZ;
+            linearSupport.Comment = Comment;
 
-            DA.SetData(0, nodalSupport);
+            DA.SetData(0, linearSupport);
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace GH_RFEM
         /// </summary>
         public override Guid ComponentGuid
         {
-            get { return new Guid("f1e2cf23-07bb-4e24-9656-e1b7eb7ea471"); }
+            get { return new Guid("53faafee-fe0e-49ea-8c3d-46827609962a"); }
         }
     }
 }

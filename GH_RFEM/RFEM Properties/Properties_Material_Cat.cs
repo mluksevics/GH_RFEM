@@ -5,7 +5,7 @@ using Grasshopper.Kernel;
 using System.Windows.Forms;
 using Grasshopper.Kernel.Types;
 
-namespace BEST
+namespace GH_RFEM
 {
     public class MaterialCatalogue : GH_PersistentParam<GH_String>
     {

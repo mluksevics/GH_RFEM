@@ -68,8 +68,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="RFEM Properties\Properties_SupportNodal.cs" />
     <Compile Include="RFEM Properties\Properties_Material_Cat.cs" />
+    <Compile Include="RFEM Properties\Properties_SupportLinear.cs" />
+    <Compile Include="RFEM Properties\Properties_SupportNodal.cs" />
+    <Compile Include="RFEM Properties\Properties_Section_Cat.cs" />
     <Compile Include="RFEM Properties\Properties_Hinge.cs" />
     <Compile Include="RFEM Test Area\Nodes_output_test.cs" />
     <Compile Include="RFEM Test Area\RFEM_Write.cs" />

@@ -331,11 +331,19 @@ namespace GH_RFEM
                     surfaceData.MaterialNo = material.No;
                     surfaceData.GeometryType = SurfaceGeometryType.PlaneSurfaceType;
                     surfaceData.BoundaryLineList = surfaceLineList;
-                    surfaceData.StiffnessType = SurfaceStiffnessType.StandardStiffnessType;
                     surfaceData.Comment = srfCommentMethodIn;
-                    //surfaceData.Thickness.Type = SurfaceThicknessType.ConstantThicknessType;
-                    surfaceData.Thickness.Constant = srfThicknessInMethod;
+                    // if -1 is input as thickness, surface is created as rigid, otherwise it is "standard"
+                    if (srfThicknessInMethod == -1)
+                    {
+                        surfaceData.StiffnessType = SurfaceStiffnessType.RigidStiffnessType;
+                    }
+                    else
+                    {
+                        surfaceData.StiffnessType = SurfaceStiffnessType.StandardStiffnessType;
+                        surfaceData.Thickness.Constant = srfThicknessInMethod;
+                    }
 
+                    //try writing the surface;
                     try
                     {
                         ISurface surface = data.SetSurface(surfaceData);
@@ -350,8 +358,7 @@ namespace GH_RFEM
                     surfaceCount++;
                     currentNewSurfaceNo++;
 
-
-                    //clear lines used in surface
+                    //clear lines used in creation of surface
                     RhSimpleLines.Clear();
                 }
             }

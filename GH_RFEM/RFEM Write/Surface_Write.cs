@@ -337,6 +337,10 @@ namespace GH_RFEM
                     {
                         surfaceData.StiffnessType = SurfaceStiffnessType.RigidStiffnessType;
                     }
+                    else if (srfThicknessInMethod == 0)
+                    {
+                        surfaceData.StiffnessType = SurfaceStiffnessType.NullStiffnessType;
+                    }
                     else
                     {
                         surfaceData.StiffnessType = SurfaceStiffnessType.StandardStiffnessType;

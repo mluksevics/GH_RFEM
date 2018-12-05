@@ -233,6 +233,10 @@ namespace GH_RFEM
                     {
                         tempMember.Type = MemberType.Rigid;
                     }
+                    else if (sectionIdInput == "0")
+                    {
+                        tempMember.Type = MemberType.NullMember;
+                    }
                     else
                     {
                         tempMember.Type = MemberType.Beam;

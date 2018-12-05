@@ -11,9 +11,9 @@ namespace GH_RFEM
     {
         #region constructors
         public MaterialCatalogue()
-                  : base("Material Catalogue", "Mat Catalogue",
+                  : base("Material Catalogue", "RFEM Materials",
               "Select Material from catalogue",
-              "RFEM", "Material")
+              "RFEM", "Catalogues")
         { }
         public MaterialCatalogue(GH_InstanceDescription componentDescription)
           : base(componentDescription)

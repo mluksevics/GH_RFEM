@@ -48,7 +48,7 @@ namespace GH_RFEM
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             // Use the pManager object to register your input parameters.
-            pManager.AddGenericParameter("Line", "RFEM Lines", "Input lines created with 'RFEM Ln' component", GH_ParamAccess.list);
+            pManager.AddGenericParameter("Line", "RFEM Lines [RfLn]", "Input lines created with 'RFEM Ln' component", GH_ParamAccess.list);
             pManager.AddTextParameter("Member Section", "Section[code]", "Section ID. You can use note in 'properties' subsection to select section. \n Alternatively you can use RFEM section naming conventions and assign as text to this input parameter \n e.g. 'Rectangle 500/600' or 'Circle 500' \n use 0 for 'null' members \n use -1 for 'rigid' members", GH_ParamAccess.item, sectionIdInput);
             pManager.AddTextParameter("Member Material", "Material[code]", "Material TextID according to Dlubal RFEM naming system (see their API documentation. \n examples:  \n NameID|Beton C30/37@TypeID|CONCRETE@NormID|EN 1992-1-1 \n NameID|Baustahl S 235@TypeID|STEEL@NormID|EN 1993-1-1 \n NameID|Pappel und Nadelholz C24@TypeID|CONIFEROUS@NormID|EN 1995-1-1", GH_ParamAccess.item, materialIdInput);
             pManager.AddGenericParameter("Hinge at member start", "Start Hinge", "Input Hinges created using 'RFEM Hinge' node", GH_ParamAccess.item);

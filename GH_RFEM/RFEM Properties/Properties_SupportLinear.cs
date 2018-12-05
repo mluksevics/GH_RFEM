@@ -13,7 +13,7 @@ namespace GH_RFEM
         /// Initializes a new instance of the Nodal Support class.
         /// </summary>
         public Properties_SupportLinear()
-          : base("Linear Support RFEM", "Line Support",
+          : base("Linear Support RFEM", "RFEM Line Supp.",
               "Create Linear support to be applied for line",
               "RFEM", "Properties")
         {

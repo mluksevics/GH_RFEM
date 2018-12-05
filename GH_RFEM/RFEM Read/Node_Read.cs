@@ -27,7 +27,7 @@ namespace GH_RFEM
         /// new tabs/panels will automatically be created.
         /// </summary>
         public Node_Read()
-          : base("Node RFEM", "RFEM Nd Read",
+          : base("Read Nodes from RFEM", "RFEM Nd Read",
               "Create Rhino points from RFEM nodes",
               "RFEM", "Read")
         {

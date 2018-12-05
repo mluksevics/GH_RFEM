@@ -11,9 +11,9 @@ namespace GH_RFEM
     {
         #region constructors
         public SectionCatalogue()
-                  : base("Section Catalogue", "Sect Catalogue",
+                  : base("Section Catalogue", "RFEM Sections",
               "Select Cross section from catalogue",
-              "RFEM", "Section")
+              "RFEM", "Catalogues")
         { }
         public SectionCatalogue(GH_InstanceDescription componentDescription)
           : base(componentDescription)

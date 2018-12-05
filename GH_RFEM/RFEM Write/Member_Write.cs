@@ -53,7 +53,7 @@ namespace GH_RFEM
             pManager.AddTextParameter("Member Material", "Material[code]", "Material TextID according to Dlubal RFEM naming system (see their API documentation. \n examples:  \n NameID|Beton C30/37@TypeID|CONCRETE@NormID|EN 1992-1-1 \n NameID|Baustahl S 235@TypeID|STEEL@NormID|EN 1993-1-1 \n NameID|Pappel und Nadelholz C24@TypeID|CONIFEROUS@NormID|EN 1995-1-1", GH_ParamAccess.item, materialIdInput);
             pManager.AddGenericParameter("Hinge at member start", "Start Hinge", "Input Hinges created using 'RFEM Hinge' node", GH_ParamAccess.item);
             pManager.AddGenericParameter("Hinge at member end", "End Hinge", "Input Hinges created using 'RFEM Hinge' node", GH_ParamAccess.item);
-            pManager.AddNumberParameter("Rotation (beta) angle ", "Rotation[deg]", "Input rotation of section about local X axis", GH_ParamAccess.item, rotationInput);
+            //pManager.AddNumberParameter("Rotation (beta) angle ", "Rotation[deg]", "Input rotation of section about local X axis", GH_ParamAccess.item, rotationInput);
             pManager.AddTextParameter("Text to be written in RFEM comments field", "Comment", "Text written in RFEM comments field", GH_ParamAccess.item, commentsInput);
             pManager.AddBooleanParameter("Run", "Toggle", "Toggles whether the Surfaces are written to RFEM", GH_ParamAccess.item, run);
 
@@ -62,7 +62,7 @@ namespace GH_RFEM
             pManager[3].Optional = true;
             pManager[4].Optional = true;
             pManager[5].Optional = true;
-            pManager[6].Optional = true;
+            //pManager[6].Optional = true;
         }
 
         /// <summary>
@@ -95,11 +95,11 @@ namespace GH_RFEM
             if (!DA.GetDataList<Dlubal.RFEM5.Line>(0, rfemLinesInput)) return;
             DA.GetData(1, ref sectionIdInput);
             DA.GetData(2, ref materialIdInput);
-            DA.GetData(3, ref rfemHingeStartInput);
-            DA.GetData(4, ref rfemHingeEndInput);
-            DA.GetData(5, ref rotationInput);
-            DA.GetData(6, ref commentsInput);
-            DA.GetData(7, ref run);
+            if (!DA.GetData(3, ref rfemHingeStartInput)) rfemHingeStartInput.No = -1;
+            if (!DA.GetData(4, ref rfemHingeEndInput)) rfemHingeEndInput.No = -1;
+           // DA.GetData(5, ref rotationInput); //assignment of rotation angle via  Dlubal RFEM API appears not to be working
+            DA.GetData(5, ref commentsInput);
+            DA.GetData(6, ref run);
 
             // The actual functionality will be in a method defined below. This is where we run it
             if (run == true)
@@ -196,8 +196,8 @@ namespace GH_RFEM
             tempCrossSection.MaterialNo = currentNewMaterialNo;
 
             //define member hinge numbers
-            rfemHingeStartInput.No = currentNewHingeNo;
-            rfemHingeEndMethodIn.No = currentNewHingeNo+1;
+            if (rfemHingeStartInput.No != -1) rfemHingeStartInput.No = currentNewHingeNo;
+            if (rfemHingeEndInput.No != -1) rfemHingeEndMethodIn.No = currentNewHingeNo+1;
 
 
 
@@ -212,8 +212,8 @@ namespace GH_RFEM
                     data.SetMaterial(material);
                     data.SetCrossSection(tempCrossSection);
                 }
-                data.SetMemberHinge(rfemHingeStartInput);
-                data.SetMemberHinge(rfemHingeEndMethodIn);
+                if (rfemHingeStartInput.No != -1) data.SetMemberHinge(rfemHingeStartInput);
+                if (rfemHingeEndInput.No != -1) data.SetMemberHinge(rfemHingeEndMethodIn);
 
 
                 // process all lines and create members of those
@@ -226,8 +226,8 @@ namespace GH_RFEM
                     tempMember.StartCrossSectionNo = currentNewSectionNo;
                     tempMember.TaperShape = TaperShapeType.Linear;
                     tempMember.Rotation.Angle = rotationMethodIn;
-                    tempMember.StartHingeNo = currentNewHingeNo;
-                    tempMember.EndHingeNo = currentNewHingeNo+1;
+                    if (rfemHingeStartInput.No != -1) tempMember.StartHingeNo = currentNewHingeNo;
+                    if (rfemHingeEndInput.No != -1) tempMember.EndHingeNo = currentNewHingeNo+1;
                     tempMember.Comment = commentsListMethodIn;
                     // if -1 is input as section, member is created as rigid, otherwise it is "standard"
                     if (sectionIdInput == "-1")

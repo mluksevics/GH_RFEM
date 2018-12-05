@@ -90,7 +90,7 @@ namespace GH_RFEM
             // When data cannot be extracted from a parameter, we should abort this method.
             if (!DA.GetDataList<Rhino.Geometry.Curve>(0, rhinoCurvesInput)) return;
             DA.GetData(1, ref segmentLengthInput);
-            DA.GetData(2, ref rfemLineSupportInput);
+            if (!DA.GetData(2, ref rfemLineSupportInput)) rfemLineSupportInput.No = -1;
             DA.GetData(3, ref commentsInput);
             DA.GetData(4, ref run);
 
@@ -157,7 +157,7 @@ namespace GH_RFEM
             //defining variables needed to store geometry and RFEM info
             Rhino.Geometry.Point3d startPoint;
             Rhino.Geometry.Point3d endPoint;
-            Dlubal.RFEM5.Line[] RfemLineArray = new Dlubal.RFEM5.Line[RhSimpleLines.Count+1];
+            Dlubal.RFEM5.Line[] RfemLineArray = new Dlubal.RFEM5.Line[RhSimpleLines.Count];
             Dlubal.RFEM5.Node[] RfemNodeArray = new Dlubal.RFEM5.Node[RhSimpleLines.Count * 2+2];
 
             // Gets interface to running RFEM application.
@@ -209,8 +209,8 @@ namespace GH_RFEM
             {
 
                 //cycling through all lines and creating RFEM objects;
-                int nodeCount = 1;
-                int lineCount = 1;
+                int nodeCount = 0;
+                int lineCount = 0;
                 string createdLinesList = "";
 
                 for (int i = 1; i < RhSimpleLines.Count+1; i++)
@@ -256,11 +256,13 @@ namespace GH_RFEM
                     currentNewNodeNo = currentNewNodeNo + 2;
                 }
 
-                //addition of line supports
-                rfemLineSupportMethodIn.No = currentNewLineSupportNo;
-                rfemLineSupportMethodIn.LineList = createdLinesList;
-                data.SetLineSupport(ref rfemLineSupportMethodIn);
-
+                //addition of line supports - only is there is input for support:
+                if (rfemLineSupportInput.No != -1)
+                {
+                    rfemLineSupportMethodIn.No = currentNewLineSupportNo;
+                    rfemLineSupportMethodIn.LineList = createdLinesList;
+                    data.SetLineSupport(ref rfemLineSupportMethodIn);
+                }
 
                 // finish modification - RFEM regenerates the data
                 data.FinishModification();

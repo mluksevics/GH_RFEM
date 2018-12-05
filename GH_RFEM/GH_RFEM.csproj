@@ -83,6 +83,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="RFEM Write\Member_Write.cs" />
     <Compile Include="RFEM Write\Model_Clear.cs" />
     <Compile Include="RFEM Write\Surface_Write.cs" />
     <Compile Include="RFEM Write\Line_Write.cs" />

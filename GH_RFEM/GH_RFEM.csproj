@@ -103,6 +103,33 @@
   <ItemGroup>
     <Folder Include="RFEM Test Area\" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\icon_explode.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\icon_hinges.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\icon_line_read.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\icon_linear_support.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\icon_materials.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\icon_member.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\icon_node_read.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\icon_section.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\icon_support.bmp" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

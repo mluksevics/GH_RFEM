@@ -127,5 +127,14 @@ namespace GH_RFEM
         {
             return GH_GetterResult.cancel;
         }
+
+        protected override System.Drawing.Bitmap Icon
+        {
+            get
+            {
+                // You can add image files to your project resources and access them like this:
+                return GH_RFEM.Properties.Resources.icon_section;
+            }
+        }
     }
 }

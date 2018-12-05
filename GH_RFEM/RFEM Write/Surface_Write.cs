@@ -56,7 +56,7 @@ namespace GH_RFEM
             // Use the pManager object to register your input parameters.
             pManager.AddSurfaceParameter("Surface", "Surfaces", "Input Rhino planar sufaces you want to create as RFEM Surfaces", GH_ParamAccess.list);
             pManager.AddNumberParameter("Segment length", "MaxSegmentLength[m]", "Any edges with splines/circles/arcs will be simplified as segments with maximum length described in this parameter", GH_ParamAccess.item, segmentLength);
-            pManager.AddNumberParameter("Surface Thickness", "Thickness[m]", "Surfaces are created as isotropic planar surface with thickness[m] assigned in this parameters", GH_ParamAccess.item, srfThickness);
+            pManager.AddNumberParameter("Surface Thickness", "Thickness[m]", "Surfaces are created as isotropic planar surface with thickness[m] assigned in this parameters \n use 0 for 'null' surfaces \n use -1 for 'rigid' surfaces", GH_ParamAccess.item, srfThickness);
             pManager.AddTextParameter("Surface Material", "Material[code]", "Material TextID according to Dlubal RFEM naming system (see their API documentation. \n examples:  \n NameID|Beton C30/37@TypeID|CONCRETE@NormID|EN 1992-1-1 \n NameID|Baustahl S 235@TypeID|STEEL@NormID|EN 1993-1-1 \n NameID|Pappel und Nadelholz C24@TypeID|CONIFEROUS@NormID|EN 1995-1-1", GH_ParamAccess.item, srfMaterial);
             pManager.AddTextParameter("Text to be written in RFEM comments field", "Comment", "Text written in RFEM comments field", GH_ParamAccess.item, commentsInput);
             pManager.AddBooleanParameter("Run", "Toggle", "Toggles whether the Surfaces are written to RFEM", GH_ParamAccess.item, run);

@@ -265,12 +265,14 @@ namespace GH_RFEM
                 }
 
                 // finish modification - RFEM regenerates the data
+                //data.CorrectIdenticalNodes(IdenticalObjectsCorrectionType.UniteType,0.005,"");
                 data.FinishModification();
+
             }
 
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Error - Line Write", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             // Releases interface to RFEM model.

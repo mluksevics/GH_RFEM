@@ -354,7 +354,7 @@ namespace GH_RFEM
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(ex.Message, "Error - Surface Write", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     }
 
 

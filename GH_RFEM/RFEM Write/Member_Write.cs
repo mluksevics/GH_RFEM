@@ -219,6 +219,15 @@ namespace GH_RFEM
                 // process all lines and create members of those
                 for (int i = 0; i < rfemLineMethodIn.Count; i++)
                 {
+                    try
+                    {
+                        data.GetLine(rfemLineMethodIn[i].No,ItemAt.AtNo);
+                    }
+                    catch
+                    {
+                        continue;
+                    }
+
                     Dlubal.RFEM5.Member tempMember = new Dlubal.RFEM5.Member();
                     tempMember.No = currentNewMemberNo;
                     tempMember.LineNo = rfemLineMethodIn[i].No;
@@ -257,7 +266,7 @@ namespace GH_RFEM
 
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Error - Member Write", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             // Releases interface to RFEM model.

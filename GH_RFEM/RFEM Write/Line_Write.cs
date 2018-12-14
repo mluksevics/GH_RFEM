@@ -39,7 +39,7 @@ namespace GH_RFEM
         string commentsInput = "";
         Dlubal.RFEM5.LineSupport rfemLineSupportInput = new Dlubal.RFEM5.LineSupport();
 
-
+        //define grasshopper component input parameters
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             // Use the pManager object to register your input parameters.
@@ -68,6 +68,7 @@ namespace GH_RFEM
         bool writeSuccess = false;
         List<Dlubal.RFEM5.Line> RfemLines = new List<Dlubal.RFEM5.Line>();
 
+        //define grasshopper component ouput parameters
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             // Use the pManager object to register your output parameters.
@@ -84,9 +85,6 @@ namespace GH_RFEM
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             // First, we need to retrieve all data from the input parameters.
-            // We'll start by declaring variables and assigning them starting values.
-
-            // Then we need to access the input parameters individually. 
             // When data cannot be extracted from a parameter, we should abort this method.
             if (!DA.GetDataList<Rhino.Geometry.Curve>(0, rhinoCurvesInput)) return;
             DA.GetData(1, ref segmentLengthInput);
@@ -98,7 +96,8 @@ namespace GH_RFEM
             // The actual functionality will be in a method defined below. This is where we run it
             if (run == true)
             {
-                //clears and resets all output parameters:
+                //clears and resets all output parameters.
+                // this is done to ensure that if function is repeadedly run, then parameters are re-read and redefined
                 RfemLines.Clear();
                 writeSuccess = false;
 
@@ -107,13 +106,16 @@ namespace GH_RFEM
             }
             else
             {
+                // if "run" is set to false, then also the output parameter "success" is set to false
+                // this ensures that as soon as "run" toogle is set "false", it automatically updates output.
                 DA.SetData(1, false);
             }
 
             // Finally assign the processed data to the output parameter.
             DA.SetDataList(0, RfemLines);
 
-            // clear and reset all input parameters
+            //clears and resets all input parameters.
+            // this is done to ensure that if function is repeadedly run, then parameters are re-read and redefined
             rhinoCurvesInput.Clear();
             commentsInput = "";
             rfemLineSupportInput = new Dlubal.RFEM5.LineSupport();
@@ -121,6 +123,16 @@ namespace GH_RFEM
 
         private List<Dlubal.RFEM5.Line> CreateRfemLines(List<Rhino.Geometry.Curve> Rh_Crv, Dlubal.RFEM5.LineSupport rfemLineSupportMethodIn, string commentsListMethodIn)
         {
+            //defining variables needed to store geometry and RFEM info
+            Rhino.Geometry.Point3d startPoint;
+            Rhino.Geometry.Point3d endPoint;
+            List<Dlubal.RFEM5.Node> RfemNodeList = new List<Dlubal.RFEM5.Node>();
+            List<Dlubal.RFEM5.Line> RfemLineList = new List<Dlubal.RFEM5.Line>();
+            string createdLinesList = "";
+
+            //---- Rhino geometry simplification and creating a list of simple straight lines ----
+            #region Rhino geometry processing
+
             //start by reducing the input curves to simple lines with start/end points
             List<Rhino.Geometry.Curve> RhSimpleLines = new List<Rhino.Geometry.Curve>();
 
@@ -131,12 +143,14 @@ namespace GH_RFEM
                 {
                     if (RhSingleCurve.SpanCount==1)
                     {
+                        // if line is a simple straight line
                         RhSimpleLines.Add(RhSingleCurve);
                     }
                     else
                     {
                         foreach (Rhino.Geometry.Curve explodedLine in RhSingleCurve.DuplicateSegments())
                         {
+                            // if line is polyline, then it gets exploded
                             RhSimpleLines.Add(explodedLine);
                         }
                     }
@@ -147,18 +161,17 @@ namespace GH_RFEM
                     
                     foreach (Rhino.Geometry.Curve explodedLine in RhSingleCurve.ToPolyline(0, 0, 3.14, 1, 0, 0, 0, segmentLengthInput, true).DuplicateSegments())
                     {
+                        // if line is a an arc or nurbs or have any curvature, it gets simplified
                         RhSimpleLines.Add(explodedLine);
                     }
 
                 }
                 
             }
+            #endregion
 
-            //defining variables needed to store geometry and RFEM info
-            Rhino.Geometry.Point3d startPoint;
-            Rhino.Geometry.Point3d endPoint;
-            Dlubal.RFEM5.Line[] RfemLineArray = new Dlubal.RFEM5.Line[RhSimpleLines.Count];
-            Dlubal.RFEM5.Node[] RfemNodeArray = new Dlubal.RFEM5.Node[RhSimpleLines.Count * 2+2];
+            //---- Interface with RFEM, getting available element numbers ----
+            #region Gets interface with RFEM and currently available element numbers
 
             // Gets interface to running RFEM application.
             IApplication app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
@@ -171,76 +184,51 @@ namespace GH_RFEM
             // Gets interface to model data.
             IModelData data = model.GetModelData();
 
-            // Gets Max line Number
-            int currentNewLineNo = 1;
-            int totalLinesCount = data.GetLines().Count();
-            if (totalLinesCount != 0)
-            {
-                int lastLineNo = data.GetLine(totalLinesCount - 1, ItemAt.AtIndex).GetData().No;
-                currentNewLineNo = lastLineNo + 1;
-            }
+            // Gets Max node, line , line support numbers
+            int currentNewNodeNo = data.GetLastObjectNo(ModelObjectType.NodeObject) + 1;
+            int currentNewLineNo = data.GetLastObjectNo(ModelObjectType.LineObject) + 1;
+            int currentNewLineSupportNo = data.GetLastObjectNo(ModelObjectType.LineSupportObject) + 1;
 
-            // Gets Max node Number
-            int currentNewNodeNo = 1;
-            int totalNodesCount = data.GetNodes().Count();
-            if (totalNodesCount != 0)
-            {
-                int lastNodeNo = data.GetNode(totalNodesCount - 1, ItemAt.AtIndex).GetData().No;
-                currentNewNodeNo = lastNodeNo + 1;
-            }
+            #endregion
 
-            // Gets Max line support number
-            int currentNewLineSupportNo = 1;
-            int totalLineSupportsCount = data.GetLineSupports().Count();
-            if (totalLineSupportsCount != 0)
-            {
-                int lastLineSupportNo = data.GetLineSupport(totalLineSupportsCount - 1, ItemAt.AtIndex).GetData().No;
-                currentNewLineSupportNo = lastLineSupportNo + 1;
-            }
+            //----- cycling through all lines and creating RFEM objects ----
+            #region Creates RFEM node and line elements
 
-
-            // modification
-            // Sets all objects to model data.
-            data.PrepareModification();
-
-            ///This version writes nodes one-by-one because the data.SetNodes() for
-            ///array appears not to be working
-            try
-            {
-
-                //cycling through all lines and creating RFEM objects;
-                int nodeCount = 0;
-                int lineCount = 0;
-                string createdLinesList = "";
-
-                for (int i = 1; i < RhSimpleLines.Count+1; i++)
+            for (int i = 0; i < RhSimpleLines.Count; i++)
                 {
-                    startPoint = RhSimpleLines[i - 1].PointAtStart;
-                    endPoint = RhSimpleLines[i - 1].PointAtEnd;
+                    // defining start and end nodes of the line
+                    Dlubal.RFEM5.Node tempCurrentStartNode = new Dlubal.RFEM5.Node();
+                    Dlubal.RFEM5.Node tempCurrentEndNode = new Dlubal.RFEM5.Node();
 
-                    RfemNodeArray[nodeCount].No = currentNewNodeNo;
-                    RfemNodeArray[nodeCount].X = startPoint.X;
-                    RfemNodeArray[nodeCount].Y = startPoint.Y;
-                    RfemNodeArray[nodeCount].Z = startPoint.Z;
+                    startPoint = RhSimpleLines[i].PointAtStart;
+                    endPoint = RhSimpleLines[i].PointAtEnd;
 
-                    RfemNodeArray[nodeCount + 1].No = currentNewNodeNo + 1;
-                    RfemNodeArray[nodeCount + 1].X = endPoint.X;
-                    RfemNodeArray[nodeCount + 1].Y = endPoint.Y;
-                    RfemNodeArray[nodeCount + 1].Z = endPoint.Z;
+                    tempCurrentStartNode.No = currentNewNodeNo;
+                    tempCurrentStartNode.X = startPoint.X;
+                    tempCurrentStartNode.Y = startPoint.Y;
+                    tempCurrentStartNode.Z = startPoint.Z;
+
+                    tempCurrentEndNode.No = currentNewNodeNo + 1;
+                    tempCurrentEndNode.X = endPoint.X;
+                    tempCurrentEndNode.Y = endPoint.Y;
+                    tempCurrentEndNode.Z = endPoint.Z;
+
+                    RfemNodeList.Add(tempCurrentStartNode);
+                    RfemNodeList.Add(tempCurrentEndNode);
+
+                    // defining line
+                    Dlubal.RFEM5.Line tempCurrentLine = new Dlubal.RFEM5.Line();
+
+                    tempCurrentLine.No = currentNewLineNo;
+                    tempCurrentLine.Type = LineType.PolylineType;
+                    tempCurrentLine.Comment = commentsListMethodIn;
+                    tempCurrentLine.NodeList = $"{tempCurrentStartNode.No}, {tempCurrentEndNode.No}";
+
+                    RfemLineList.Add(tempCurrentLine);
 
 
-                    data.SetNode(RfemNodeArray[nodeCount]);
-                    data.SetNode(RfemNodeArray[nodeCount + 1]);
-
-
-                    RfemLineArray[lineCount].No = currentNewLineNo;
-                    RfemLineArray[lineCount].Type = LineType.PolylineType;
-                    RfemLineArray[lineCount].Comment = commentsListMethodIn;
-                    RfemLineArray[lineCount].NodeList = $"{RfemNodeArray[nodeCount].No}, {RfemNodeArray[nodeCount + 1].No}";
-
-                    data.SetLine(RfemLineArray[lineCount]);
-
-                    if (i == RhSimpleLines.Count)
+                // adding line numbers to list with all lines
+                if (i == RhSimpleLines.Count)
                     {
                         createdLinesList = createdLinesList + currentNewLineNo.ToString();
                     }
@@ -249,14 +237,34 @@ namespace GH_RFEM
                         createdLinesList = createdLinesList + currentNewLineNo.ToString() + ",";
                     }
 
-                    nodeCount = nodeCount + 2;
-                    lineCount++;
-
+                    // increasing counters for numbering
                     currentNewLineNo++;
                     currentNewNodeNo = currentNewNodeNo + 2;
                 }
+            #endregion
 
-                //addition of line supports - only is there is input for support:
+            //----- Writing nodes and lines to RFEM ----
+            #region Write nodes, lines and supports to RFEM
+
+            try
+            {
+                // modification - set model in modification mode, new information can be written
+                data.PrepareModification();
+
+                //This version writes nodes one-by-one because the data.SetNodes() for array appears not to be working
+                //data.SetNodes(RfemNodeArray);
+                foreach (Node currentRfemNode in RfemNodeList)
+                {
+                    data.SetNode(currentRfemNode);
+                }
+                
+                //This version writes lines one-by-one because the data.SetLines() for array appears not to be working
+                foreach (Dlubal.RFEM5.Line currentRfemLine in RfemLineList)
+                {
+                    data.SetLine(currentRfemLine);
+                }
+
+                //Definition of line supports - only is there is input for support:
                 if (rfemLineSupportInput.No != -1)
                 {
                     rfemLineSupportMethodIn.No = currentNewLineSupportNo;
@@ -265,7 +273,6 @@ namespace GH_RFEM
                 }
 
                 // finish modification - RFEM regenerates the data
-                //data.CorrectIdenticalNodes(IdenticalObjectsCorrectionType.UniteType,0.005,"");
                 data.FinishModification();
 
             }
@@ -275,7 +282,12 @@ namespace GH_RFEM
                 MessageBox.Show(ex.Message, "Error - Line Write", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
+            #endregion
+
+
             // Releases interface to RFEM model.
+            #region Releases interface to RFEM
+
             model = null;
 
             // Unlocks licence and releases interface to RFEM application.
@@ -289,14 +301,11 @@ namespace GH_RFEM
             System.GC.Collect();
             System.GC.WaitForPendingFinalizers();
 
-            ///the lines below outputs created RFEM nodes in output parameter
-            ///current funcionality does not use this
-            ///it uses a custom class (written within this project) RfemNodeType to wrap the Dlubal.RFEM5.Node objects.
-            
-     
-            List<Dlubal.RFEM5.Line> RfemLineList = RfemLineArray.OfType<Dlubal.RFEM5.Line>().ToList(); // this isn't going to be fast.
 
-            //output 'success' as true 
+            #endregion
+
+
+            //output 'success' as true and return the list of the lines; 
             writeSuccess = true;
             return RfemLineList;
 

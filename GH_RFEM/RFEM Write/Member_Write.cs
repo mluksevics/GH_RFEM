@@ -45,6 +45,7 @@ namespace GH_RFEM
         string commentsInput = "";
         bool run = false;
 
+        //define grasshopper component input parameters
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             // Use the pManager object to register your input parameters.
@@ -70,9 +71,10 @@ namespace GH_RFEM
         /// </summary>
         /// 
         //declaring output parameters
-        List<Dlubal.RFEM5.Member> RfemMembers = new List<Dlubal.RFEM5.Member>();
+        List<Dlubal.RFEM5.Member> RfemMemberList = new List<Dlubal.RFEM5.Member>();
         bool writeSuccess = false;
 
+        //define grasshopper component ouput parameters
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             // Use the pManager object to register your output parameters.
@@ -104,24 +106,28 @@ namespace GH_RFEM
             // The actual functionality will be in a method defined below. This is where we run it
             if (run == true)
             {
-                //clears and resets all output parameters:
-                RfemMembers.Clear();
+                //clears and resets all output parameters.
+                // this is done to ensure that if function is repeadedly run, then parameters are re-read and redefined
+                RfemMemberList.Clear();
                 writeSuccess = false;
 
-                //runs the method for creating RFEM nodes
-                RfemMembers = CreateRfemMembers(rfemLinesInput, sectionIdInput, materialIdInput, rfemHingeStartInput, rfemHingeEndInput, rotationInput, commentsInput);
+                //runs the method for creating RFEM memebers
+                RfemMemberList = CreateRfemMembers(rfemLinesInput, sectionIdInput, materialIdInput, rfemHingeStartInput, rfemHingeEndInput, rotationInput, commentsInput);
                 DA.SetData(1, writeSuccess);
             }
             else
             {
+                // if "run" is set to false, then also the output parameter "success" is set to false
+                // this ensures that as soon as "run" toogle is set "false", it automatically updates output.
                 DA.SetData(1, false);
             }
 
             // Finally assign the processed data to the output parameter.
-            DA.SetDataList(0, RfemMembers);
+            DA.SetDataList(0, RfemMemberList);
 
 
-            // clear and reset all input parameters
+            //clears and resets all input parameters.
+            // this is done to ensure that if function is repeadedly run, then parameters are re-read and redefined
             rfemLinesInput.Clear();
             sectionIdInput = "";
             materialIdInput = "";
@@ -133,6 +139,9 @@ namespace GH_RFEM
 
         private List<Dlubal.RFEM5.Member> CreateRfemMembers(List<Dlubal.RFEM5.Line> rfemLineMethodIn, string sectionIdMethodIn, string materialIdMethodIn,Dlubal.RFEM5.MemberHinge rfemHingeStartMethodIn, Dlubal.RFEM5.MemberHinge rfemHingeEndMethodIn, double rotationMethodIn, string commentsListMethodIn)
         {
+            
+            //---- Interface with RFEM, getting available element numbers ----
+            #region Estabilishing connection with RFEM, getting available element numbers
 
             // Gets interface to running RFEM application.
             IApplication app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
@@ -145,42 +154,16 @@ namespace GH_RFEM
             // Gets interface to model data.
             IModelData data = model.GetModelData();
 
-            // Gets Member min available Number
-            int currentNewMemberNo = 1;
-            int totalMemberCount = data.GetMemberCount();
-            if (totalMemberCount != 0)
-            {
-                int lastMemberNo = data.GetMember(totalMemberCount - 1, ItemAt.AtIndex).GetData().No;
-                currentNewMemberNo = lastMemberNo + 1;
-            }
+            // Gets Max node, line , line support numbers
+            int currentNewMemberNo = data.GetLastObjectNo(ModelObjectType.MemberObject) + 1;
+            int currentNewSectionNo = data.GetLastObjectNo(ModelObjectType.CrossSectionObject) + 1;
+            int currentNewMaterialNo = data.GetLastObjectNo(ModelObjectType.MaterialObject) + 1;
+            int currentNewHingeNo = data.GetLastObjectNo(ModelObjectType.MemberHingeObject) + 1;
 
-            // Gets Cross Section min available Number
-            int currentNewSectionNo = 1;
-            int totalSectionCount = data.GetCrossSectionCount();
-            if (totalSectionCount != 0)
-            {
-                int lastSectionNo = data.GetCrossSection(totalSectionCount - 1, ItemAt.AtIndex).GetData().No;
-                currentNewSectionNo = lastSectionNo + 1;
-            }
+            #endregion
 
-            // Gets Max material number
-            int currentNewMaterialNo = 1;
-            int totalMaterialsCount = data.GetMaterials().Count();
-            if (totalMaterialsCount != 0)
-            {
-                int lastMaterialNo = data.GetMaterial(totalMaterialsCount - 1, ItemAt.AtIndex).GetData().No;
-                currentNewMaterialNo = lastMaterialNo + 1;
-            }
-
-            // Gets Max member hinge number
-            int currentNewHingeNo = 1;
-            int totalHingeCount = data.GetMemberHingeCount();
-            if (totalHingeCount != 0)
-            {
-                int lastHingeNo = data.GetMemberHinge(totalHingeCount - 1, ItemAt.AtIndex).GetData().No;
-                currentNewHingeNo = lastHingeNo + 1;
-            }
-
+            //---- Defining material, cross section and releases ----
+            #region Defining material, cross section and releases
 
             //define material
             Dlubal.RFEM5.Material material = new Dlubal.RFEM5.Material();
@@ -198,27 +181,16 @@ namespace GH_RFEM
             //define member hinge numbers
             if (rfemHingeStartInput.No != -1) rfemHingeStartInput.No = currentNewHingeNo;
             if (rfemHingeEndInput.No != -1) rfemHingeEndMethodIn.No = currentNewHingeNo+1;
+            #endregion
 
 
+            //---- Process all lines and create members on those ----
+            #region Processing all lines, creating RFEM member objects
 
-            try
-            {
-                // modification - Sets all objects to model data.
-                data.PrepareModification();
-
-                //set material, cross section and start&end hinges
-                if (sectionIdInput != "-1")
+            for (int i = 0; i < rfemLineMethodIn.Count; i++)
                 {
-                    data.SetMaterial(material);
-                    data.SetCrossSection(tempCrossSection);
-                }
-                if (rfemHingeStartInput.No != -1) data.SetMemberHinge(rfemHingeStartInput);
-                if (rfemHingeEndInput.No != -1) data.SetMemberHinge(rfemHingeEndMethodIn);
-
-
-                // process all lines and create members of those
-                for (int i = 0; i < rfemLineMethodIn.Count; i++)
-                {
+                
+                //test if line exists
                     try
                     {
                         data.GetLine(rfemLineMethodIn[i].No,ItemAt.AtNo);
@@ -228,6 +200,7 @@ namespace GH_RFEM
                         continue;
                     }
 
+                //assign member properties
                     Dlubal.RFEM5.Member tempMember = new Dlubal.RFEM5.Member();
                     tempMember.No = currentNewMemberNo;
                     tempMember.LineNo = rfemLineMethodIn[i].No;
@@ -238,7 +211,8 @@ namespace GH_RFEM
                     if (rfemHingeStartInput.No != -1) tempMember.StartHingeNo = currentNewHingeNo;
                     if (rfemHingeEndInput.No != -1) tempMember.EndHingeNo = currentNewHingeNo+1;
                     tempMember.Comment = commentsListMethodIn;
-                    // if -1 is input as section, member is created as rigid, otherwise it is "standard"
+                    
+                // if -1 is input as section, member is created as rigid, otherwise it is "standard"
                     if (sectionIdInput == "-1")
                     {
                         tempMember.Type = MemberType.Rigid;
@@ -251,11 +225,35 @@ namespace GH_RFEM
                     {
                         tempMember.Type = MemberType.Beam;
                     }
-
-                    data.SetMember(tempMember);
-
-                    RfemMembers.Add(tempMember);
+                    RfemMemberList.Add(tempMember);
                     currentNewMemberNo++;
+                }
+
+            #endregion
+
+            //---- Writing information in RFEM ----
+            #region Writing info to RFEM
+
+            try
+            {
+                // modification - set model in modification mode, new information can be written
+                data.PrepareModification();
+
+                //set material, cross section and start&end hinges
+                if (sectionIdInput != "-1")
+                {
+                    data.SetMaterial(material);
+                    data.SetCrossSection(tempCrossSection);
+                }
+                if (rfemHingeStartInput.No != -1) data.SetMemberHinge(rfemHingeStartInput);
+                if (rfemHingeEndInput.No != -1) data.SetMemberHinge(rfemHingeEndMethodIn);
+
+
+                //This version writes members one-by-one because the data.SetNodes() for array appears not to be working
+                //data.SetMembers(RfemMembers);
+                foreach (Member currentRfemMember in RfemMemberList)
+                {
+                    data.SetMember(currentRfemMember);
                 }
 
 
@@ -269,7 +267,10 @@ namespace GH_RFEM
                 MessageBox.Show(ex.Message, "Error - Member Write", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
-            // Releases interface to RFEM model.
+            #endregion
+
+            //---- Releases interface to RFEM model -----
+            #region Releasing interface to RFEM
             model = null;
 
             // Unlocks licence and releases interface to RFEM application.
@@ -282,14 +283,15 @@ namespace GH_RFEM
             // Cleans Garbage Collector and releases all cached COM interfaces.
             System.GC.Collect();
             System.GC.WaitForPendingFinalizers();
+            #endregion
 
-            //output 'success' as true 
+            //output 'success' as true and return member list
             writeSuccess = true;
-            return RfemMembers;
-
+            return RfemMemberList;
         }
 
-
+        //----- Grasshopper component properties = icon, guid ----
+        #region Defining Grasshopper component properties
 
         /// <summary>
         /// The Exposure property controls where in the panel a component icon 
@@ -325,5 +327,7 @@ namespace GH_RFEM
         {
             get { return new Guid("730e2d43-e762-41ca-9c3f-fa332872e22d"); }
         }
+        #endregion
+
     }
 }

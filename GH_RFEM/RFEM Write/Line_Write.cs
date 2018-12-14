@@ -52,7 +52,6 @@ namespace GH_RFEM
             pManager.AddTextParameter("Text to be written in RFEM comments field", "Comment", "Text written in RFEM comments field", GH_ParamAccess.item);
             pManager.AddBooleanParameter("Run", "Toggle", "Toggles whether the lines are written to RFEM", GH_ParamAccess.item, run);
 
-
             // If you want to change properties of certain parameters, 
             // you can use the pManager instance to access them by index:
             pManager[1].Optional = true;
@@ -251,7 +250,7 @@ namespace GH_RFEM
                 // modification - set model in modification mode, new information can be written
                 data.PrepareModification();
 
-                //This version writes nodes one-by-one because the data.SetNodes() for array appears not to be working
+                //This version writes lines one-by-one because the data.SetNodes() for array appears not to be working
                 //data.SetNodes(RfemNodeArray);
                 foreach (Node currentRfemNode in RfemNodeList)
                 {
@@ -304,15 +303,13 @@ namespace GH_RFEM
 
             #endregion
 
-
             //output 'success' as true and return the list of the lines; 
             writeSuccess = true;
             return RfemLineList;
-
-
         }
-
-
+        
+        //----- Grasshopper component properties = icon, guid ----
+        #region Defining Grasshopper component properties
 
         /// <summary>
         /// The Exposure property controls where in the panel a component icon 
@@ -347,5 +344,7 @@ namespace GH_RFEM
         {
             get { return new Guid("bad6a0dd-e550-4d1e-9c75-15c03d6f73a1"); }
         }
+        #endregion
+
     }
 }

@@ -72,7 +72,7 @@ namespace GH_RFEM
         }
 
         /// <summary>
-        /// This is the method that actually does the work.
+        /// Further is the method that actually does the work.
         /// </summary>
         /// <param name="DA">The DA object can be used to retrieve data from input parameters and 
         /// to store data in output parameters.</param>
@@ -119,6 +119,7 @@ namespace GH_RFEM
         private List<Dlubal.RFEM5.Node> CreateRfemNodes(List<Point3d> Rh_pt3d, Dlubal.RFEM5.NodalSupport rfemNodalSupportMethodIn, string commentsListMethodIn)
         {
             //---- Estabish connection with RFEM----
+            #region Creating connection with RFEM
 
             // Gets interface to running RFEM application.
             IApplication app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
@@ -130,25 +131,26 @@ namespace GH_RFEM
 
             // Gets interface to model data.
             IModelData data = model.GetModelData();
+            #endregion
 
             //---- Further lines gets information about available object numbers in model;----
+            #region Getting available element numbers
 
             // Gets Max node Number
             int currentNewNodeNo = data.GetLastObjectNo(ModelObjectType.NodeObject) + 1;
             // Gets Max nodal support number
             int currentNewNodalSupportNo = data.GetLastObjectNo(ModelObjectType.NodalSupportObject) + 1;
+            #endregion
 
             //---- Creating new variables for use within this method----
-
-            //Create new list for RFEM point objects
-            List<Dlubal.RFEM5.Node> RfemNodeList = new List<Dlubal.RFEM5.Node>();
-
-            //Create a string for list with nodes
-            string createdNodesList ="";
+            List<Dlubal.RFEM5.Node> RfemNodeList = new List<Dlubal.RFEM5.Node>();  //Create new list for RFEM point objects
+            string createdNodesList ="";   //Create a string for list with nodes
 
             //---- Assigning node propertiess----
+            #region Creating RFEM node elements
 
-                for (int i = 0; i < Rh_pt3d.Count; i++)
+
+            for (int i = 0; i < Rh_pt3d.Count; i++)
                 {
                     Dlubal.RFEM5.Node tempCurrentNode = new Dlubal.RFEM5.Node();
                     tempCurrentNode.No = currentNewNodeNo;
@@ -175,8 +177,11 @@ namespace GH_RFEM
             //create an array of nodes;
             Dlubal.RFEM5.Node[] RfemNodeArray = new Dlubal.RFEM5.Node[RfemNodeList.Count];
             RfemNodeArray = RfemNodeList.ToArray();
+            #endregion
+
 
             //---- Writing nodes----
+            #region Writing RFEM nodes and supports
 
             try
             {
@@ -185,7 +190,7 @@ namespace GH_RFEM
 
                 ///This version writes nodes one-by-one, because the API method data.SetNodes() for
                 ///array appears not to be working
-                //data.SetNodes(RfemNodeArray);
+                //data.SetNodes(RfemNodeList.ToArray());
                 foreach (Node currentRfemNode in RfemNodeList)
                 {
                     data.SetNode(currentRfemNode);
@@ -207,6 +212,12 @@ namespace GH_RFEM
                 MessageBox.Show(ex.Message, "Error - Writing nodes", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
+            #endregion
+
+
+            //---- Releasing RFEM model----
+            #region Releasing RFEM model
+
             // Releases interface to RFEM model.
             model = null;
 
@@ -220,16 +231,17 @@ namespace GH_RFEM
             // Cleans Garbage Collector and releases all cached COM interfaces.
             System.GC.Collect();
             System.GC.WaitForPendingFinalizers();
+            #endregion
 
             ///the lines below outputs created RFEM nodes in output parameter
-
             //output 'success' as true 
             writeSuccess = true;
             return RfemNodeList;
 
         }
 
-
+        //---- Setting Grasshopper component properties----
+        #region Setting visibility, icon and guid for Grasshopper component
 
         /// <summary>
         /// The Exposure property controls where in the panel a component icon 
@@ -264,5 +276,7 @@ namespace GH_RFEM
         {
             get { return new Guid("4f8440de-7562-45a3-a869-d9a4a01ab513"); }
         }
+        #endregion
+
     }
 }

@@ -41,6 +41,7 @@ namespace GH_RFEM
         string commentsInput = "";
         bool run = false;
 
+        //define grasshopper component input parameters
         protected override void RegisterInputParams(GH_Component.GH_InputParamManager pManager)
         {
             // Use the pManager object to register your input parameters.
@@ -61,6 +62,7 @@ namespace GH_RFEM
         List<Dlubal.RFEM5.Node> RfemNodes = new List<Dlubal.RFEM5.Node>();
         bool writeSuccess = false;
 
+        // define grasshopper component output paremeters
         protected override void RegisterOutputParams(GH_Component.GH_OutputParamManager pManager)
         {
             // Use the pManager object to register your output parameters.
@@ -78,18 +80,17 @@ namespace GH_RFEM
         protected override void SolveInstance(IGH_DataAccess DA)
         {
             // First, we need to retrieve all data from the input parameters.
-
-            // Then we need to access the input parameters individually. 
             // When data cannot be extracted from a parameter, we should abort this method.
             if (!DA.GetDataList<Rhino.Geometry.Point3d>(0, rhinoPointsInput)) return;
             DA.GetData(1, ref rfemNodalSupportInput);
             DA.GetData(2, ref commentsInput);
             DA.GetData(3, ref run);
 
-            // The actual functionality will be in a method defined below. This is where we run it
+            // The actual functionality will be in a method defined below. This is where we run it.
             if (run == true)
             {
-                //clears and resets all output parameters:
+                //clears and resets all output parameters.
+                // this is done to ensure that if function is repeadedly run, then parameters are re-read and redefined
                 RfemNodes.Clear();
                 writeSuccess = false;
 
@@ -99,6 +100,8 @@ namespace GH_RFEM
             }
             else
             {
+                // if "run" is set to false, then also the output parameter "success" is set to false
+                // this ensures that as soon as "run" toogle is set "false", it automatically updates output.
                 DA.SetData(1, false);
             }
 
@@ -107,6 +110,7 @@ namespace GH_RFEM
 
 
             // clear and reset all input parameters
+            // this is done to ensure that if function is repeadedly run, then parameters are re-read and redefined
             rhinoPointsInput.Clear();
             commentsInput = "";
             rfemNodalSupportInput = new Dlubal.RFEM5.NodalSupport();
@@ -114,6 +118,7 @@ namespace GH_RFEM
 
         private List<Dlubal.RFEM5.Node> CreateRfemNodes(List<Point3d> Rh_pt3d, Dlubal.RFEM5.NodalSupport rfemNodalSupportMethodIn, string commentsListMethodIn)
         {
+            //---- Estabish connection with RFEM----
 
             // Gets interface to running RFEM application.
             IApplication app = Marshal.GetActiveObject("RFEM5.Application") as IApplication;
@@ -126,46 +131,34 @@ namespace GH_RFEM
             // Gets interface to model data.
             IModelData data = model.GetModelData();
 
+            //---- Further lines gets information about available object numbers in model;----
+
             // Gets Max node Number
-            int currentNewNodeNo = 1;
-            int totalNodesCount = data.GetNodes().Count();
-            if (totalNodesCount !=0)
-            {
-                int lastNodeNo = data.GetNode(totalNodesCount - 1, ItemAt.AtIndex).GetData().No;
-                currentNewNodeNo = lastNodeNo + 1;
-            }
-
+            int currentNewNodeNo = data.GetLastObjectNo(ModelObjectType.NodeObject) + 1;
             // Gets Max nodal support number
-            int currentNewNodalSupportNo = 1;
-            int totalNodalSupportsCount = data.GetNodalSupports().Count();
-            if (totalNodalSupportsCount != 0)
-            {
-                int lastNodalSupportNo = data.GetNodalSupport(totalNodalSupportsCount - 1, ItemAt.AtIndex).GetData().No;
-                currentNewNodalSupportNo = lastNodalSupportNo + 1;
-            }
+            int currentNewNodalSupportNo = data.GetLastObjectNo(ModelObjectType.NodalSupportObject) + 1;
 
-            //Create new array for RFEM point objects
-            Dlubal.RFEM5.Node[] RfemNodeArray = new Dlubal.RFEM5.Node[Rh_pt3d.Count];
+            //---- Creating new variables for use within this method----
+
+            //Create new list for RFEM point objects
+            List<Dlubal.RFEM5.Node> RfemNodeList = new List<Dlubal.RFEM5.Node>();
+
             //Create a string for list with nodes
             string createdNodesList ="";
 
-            ///This version writes nodes one-by-one, because the API method data.SetNodes() for
-            ///array appears not to be working
-            try
-            {
-                // modification - Sets all objects to model data.
-                data.PrepareModification();
-
+            //---- Assigning node propertiess----
 
                 for (int i = 0; i < Rh_pt3d.Count; i++)
                 {
-                    RfemNodeArray[i].No = currentNewNodeNo;
-                    RfemNodeArray[i].X = Rh_pt3d[i].X;
-                    RfemNodeArray[i].Y = Rh_pt3d[i].Y;
-                    RfemNodeArray[i].Z = Rh_pt3d[i].Z;
-                    RfemNodeArray[i].Comment = commentsListMethodIn;
-
-                    data.SetNode(RfemNodeArray[i]);
+                    Dlubal.RFEM5.Node tempCurrentNode = new Dlubal.RFEM5.Node();
+                    tempCurrentNode.No = currentNewNodeNo;
+                    tempCurrentNode.CS = CoordinateSystemType.Cartesian;
+                    tempCurrentNode.Type = NodeType.Standard;
+                    tempCurrentNode.X = Rh_pt3d[i].X;
+                    tempCurrentNode.Y = Rh_pt3d[i].Y;
+                    tempCurrentNode.Z = Rh_pt3d[i].Z;
+                    tempCurrentNode.Comment = commentsListMethodIn;
+                    RfemNodeList.Add(tempCurrentNode);
 
                     if (i== Rh_pt3d.Count - 1)
                     {
@@ -179,20 +172,39 @@ namespace GH_RFEM
                     currentNewNodeNo++;
                 }
 
+            //create an array of nodes;
+            Dlubal.RFEM5.Node[] RfemNodeArray = new Dlubal.RFEM5.Node[RfemNodeList.Count];
+            RfemNodeArray = RfemNodeList.ToArray();
+
+            //---- Writing nodes----
+
+            try
+            {
+                // modification - set model in modification mode, new information can be written
+                data.PrepareModification();
+
+                ///This version writes nodes one-by-one, because the API method data.SetNodes() for
+                ///array appears not to be working
+                //data.SetNodes(RfemNodeArray);
+                foreach (Node currentRfemNode in RfemNodeList)
+                {
+                    data.SetNode(currentRfemNode);
+                }
+
                 //addition of nodal supports
-                    rfemNodalSupportMethodIn.No = currentNewNodalSupportNo;
+                rfemNodalSupportMethodIn.No = currentNewNodalSupportNo;
                     rfemNodalSupportMethodIn.NodeList = createdNodesList;
                     data.SetNodalSupport(ref rfemNodalSupportMethodIn);
 
 
-                // finish modification - RFEM regenerates the data
+                // finish modification - RFEM regenerates the data (this operation takes some time)
                 data.FinishModification();
 
             }
 
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Error - Writing nodes", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
             // Releases interface to RFEM model.
@@ -210,7 +222,6 @@ namespace GH_RFEM
             System.GC.WaitForPendingFinalizers();
 
             ///the lines below outputs created RFEM nodes in output parameter
-            List<Dlubal.RFEM5.Node> RfemNodeList = RfemNodeArray.OfType<Dlubal.RFEM5.Node>().ToList();
 
             //output 'success' as true 
             writeSuccess = true;

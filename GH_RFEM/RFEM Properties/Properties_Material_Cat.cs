@@ -48,7 +48,7 @@ namespace GH_RFEM
       { "NameID|Baustahl S 235@TypeID|STEEL@NormID|EN 1993-1-1", "S235, Steel (EN1993)" },
       { "NameID|Baustahl S 275@TypeID|STEEL@NormID|EN 1993-1-1", "S275, Steel (EN1993)" },
       { "NameID|Baustahl S 355@TypeID|STEEL@NormID|EN 1993-1-1", "S355, Steel (EN1993)" },
-      { "NameID|Baustahl S 450@TypeID|STEEL@NormID|EN 1993-1-1", "S355, Steel (EN1993)" },
+      { "NameID|Baustahl S 450@TypeID|STEEL@NormID|EN 1993-1-1", "S450, Steel (EN1993)" },
       { "NameID|Pappel und Nadelholz C14@TypeID|CONIFEROUS@NormID|EN 1995-1-1", "C14, Timber (EN1995)" },
       { "NameID|Pappel und Nadelholz C16@TypeID|CONIFEROUS@NormID|EN 1995-1-1", "C16, Timber (EN1995)" },
       { "NameID|Pappel und Nadelholz C18@TypeID|CONIFEROUS@NormID|EN 1995-1-1", "C18, Timber (EN1995)" },

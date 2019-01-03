@@ -129,7 +129,6 @@ namespace GH_RFEM
             int lineCount = 1;
             int surfaceCount = 1;
 
-
             //list for curves describing surface edges
             List<Rhino.Geometry.Curve> RhSimpleLines = new List<Rhino.Geometry.Curve>();
 
@@ -166,14 +165,14 @@ namespace GH_RFEM
             material.TextID = srfMaterialTextDescription;
             material.ModelType = MaterialModelType.IsotropicLinearElasticType;
 
-            //prepares model for modification.
-            data.PrepareModification();
 
 
             //start cycling through all surfaces
             foreach (Rhino.Geometry.Brep RhSingleSurface in Rh_Srf)
             {
                 #region simplification of perimeter edges
+                // clearing previous surface data before starting to work on new surface:
+                RhSimpleLines.Clear();
 
                 //simplifying edges - adding to array;
                 Rhino.Geometry.Curve[] curves = RhSingleSurface.DuplicateEdgeCurves(true);
@@ -214,6 +213,9 @@ namespace GH_RFEM
 
                     int surfaceNodeCounter = 0; //counts nodes witin one surface. nodeCount counts overall nodes in model
                     int surfaceLineCounter = 0; // counts lines (edges) for one surface, lineCount counts overall lines in model
+
+                    //cycling through perimeter of the surface and defining lines surface
+                    #region Defining nodes and lines for one surface
 
                     for (int i = 0; i < RhSimpleLines.Count; i++)
                     {
@@ -263,11 +265,14 @@ namespace GH_RFEM
                         {
                             //no need to define new node as these are both already defined
                             //create line connecting previous node with first node for surface
-                            RfemLineArray[surfaceLineCounter].No = currentNewLineNo;
-                            RfemLineArray[surfaceLineCounter].Type = LineType.PolylineType;
+                            // defining start and end nodes of the line
+                            Dlubal.RFEM5.Line tempCurrentLine = new Dlubal.RFEM5.Line();
 
-                            RfemLineArray[surfaceLineCounter].NodeList = $"{RfemNodeArray[surfaceNodeCounter - 1].No}, {RfemNodeArray[0].No}";
-                            data.SetLine(RfemLineArray[surfaceLineCounter]);
+                            tempCurrentLine.No = currentNewLineNo;
+                            tempCurrentLine.Type = LineType.PolylineType;
+
+                            tempCurrentLine.NodeList = $"{RfemNodeList[RfemNodeList.Count - 1].No}, {RfemNodeList[RfemNodeList.Count - surfaceNodeCounter].No}";
+                            RfemLineList.Add(tempCurrentLine);
                             lineCount++;
                             surfaceLineCounter++;
                             currentNewLineNo++;
@@ -275,20 +280,26 @@ namespace GH_RFEM
                         }
                         else
                         {
-                            
+
                             //if this is just a node somewhere on edges
-                            RfemNodeArray[surfaceNodeCounter].No = currentNewNodeNo;
-                            RfemNodeArray[surfaceNodeCounter].X = Math.Round(endPoint.X, 5);
-                            RfemNodeArray[surfaceNodeCounter].Y = Math.Round(endPoint.Y, 5);
-                            RfemNodeArray[surfaceNodeCounter].Z = Math.Round(endPoint.Z, 5);
+                            //defining end node of line
+                            Dlubal.RFEM5.Node tempCurrentEndNode = new Dlubal.RFEM5.Node();
+                            // defining start and end nodes of the line
+                            Dlubal.RFEM5.Line tempCurrentLine = new Dlubal.RFEM5.Line();
 
-                            data.SetNode(RfemNodeArray[surfaceNodeCounter]);
 
-                            RfemLineArray[surfaceLineCounter].No = currentNewLineNo;
-                            RfemLineArray[surfaceLineCounter].Type = LineType.PolylineType;
+                            tempCurrentEndNode.No = currentNewNodeNo;
+                            tempCurrentEndNode.X = Math.Round(endPoint.X, 5);
+                            tempCurrentEndNode.Y = Math.Round(endPoint.Y, 5);
+                            tempCurrentEndNode.Z = Math.Round(endPoint.Z, 5);
 
-                            RfemLineArray[surfaceLineCounter].NodeList = $"{RfemNodeArray[surfaceNodeCounter - 1].No}, {RfemNodeArray[surfaceNodeCounter].No}";
-                            data.SetLine(RfemLineArray[surfaceLineCounter]);
+                            RfemNodeList.Add(tempCurrentEndNode);
+
+                            tempCurrentLine.No = currentNewLineNo;
+                            tempCurrentLine.Type = LineType.PolylineType;
+
+                            tempCurrentLine.NodeList = $"{RfemNodeList[RfemNodeList.Count - 2].No}, {RfemNodeList[RfemNodeList.Count - 1].No}";
+                            RfemLineList.Add(tempCurrentLine);
 
                             nodeCount++;
                             surfaceNodeCounter++;
@@ -297,11 +308,15 @@ namespace GH_RFEM
 
                             currentNewNodeNo++;
                             currentNewLineNo++;
-
                         }
-
                     }
 
+                    #endregion
+
+                    //defines surface data
+                    #region Defining data of the surface to be written
+
+                    // start with making a string with "list" of lines forming the surface
                     int surfaceFirstLine = currentNewLineNo - RhSimpleLines.Count;
                     int surfaceLastLine = surfaceFirstLine + RhSimpleLines.Count - 1;
                     string surfaceLineList = "";
@@ -312,8 +327,7 @@ namespace GH_RFEM
                     }
                     surfaceLineList = surfaceLineList + surfaceLastLine.ToString();
 
-
-                    //defines surface data
+                    // defining RFEM parameter of surface
                     Dlubal.RFEM5.Surface surfaceData = new Dlubal.RFEM5.Surface();
                     surfaceData.No = currentNewSurfaceNo;
                     surfaceData.MaterialNo = material.No;
@@ -335,62 +349,82 @@ namespace GH_RFEM
                         surfaceData.Thickness.Constant = srfThicknessInMethod;
                     }
 
-                    data.SetMaterial(material);
+                    //adding surface to elements to be written
+                    RfemSurfaceList.Add(surfaceData);
 
-
-                    //try writing the surface;
-                    try
-                    {
-                        ISurface surface = data.SetSurface(surfaceData);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(ex.Message, "Error - Surface Write", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-
-
-                    RfemSurfaceArray[surfaceCount - 1] = surfaceData;
                     surfaceCount++;
                     currentNewSurfaceNo++;
 
-                    //clear lines used in creation of surface
-                    RhSimpleLines.Clear();
+                    #endregion
+
                 }
             }
 
+            //try writing the surface;
+            #region Writing the surface and releasing RFEM model
 
-                //resetting counters;
-                nodeCount = 1;
-                lineCount = 1;
-                surfaceCount = 1;
+            try
+            {
+                //prepares model for modification.
+                data.PrepareModification();
+                data.SetMaterial(material);
+
+                //This version writes nodes one-by-one because the data.SetNodes() for array appears not to be working
+                foreach (Node currentRfemNode in RfemNodeList)
+                {
+                    data.SetNode(currentRfemNode);
+                }
+
+                //This version writes lines one-by-one because the data.SetLines() for array appears not to be working
+                foreach (Dlubal.RFEM5.Line currentRfemLine in RfemLineList)
+                {
+                    data.SetLine(currentRfemLine);
+                }
+
+                //This version writes lines one-by-one because the data.SetLines() for array appears not to be working
+                foreach (Dlubal.RFEM5.Surface currentRfemSurface in RfemSurfaceList)
+                {
+                    data.SetSurface(currentRfemSurface);
+                }
 
                 //finishes modifications - regenerates numbering etc.
                 data.FinishModification();
 
-                // Releases interface to RFEM model.
-                model = null;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Error - Surface Write", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
 
-                // Unlocks licence and releases interface to RFEM application.
-                if (app != null)
-                {
-                    app.UnlockLicense();
-                    app = null;
-                }
-
-                // Cleans Garbage Collector and releases all cached COM interfaces.
-                System.GC.Collect();
-                System.GC.WaitForPendingFinalizers();
+            //resetting counters;
+            nodeCount = 1;
+            lineCount = 1;
+            surfaceCount = 1;
 
 
-            
+            // Releases interface to RFEM model.
+            model = null;
 
-            ///the Surfaces below outputs created RFEM nodes in output parameter
-            ///current funcionality does not use this
-            ///it uses a custom class (written within this project) RfemNodeType to wrap the Dlubal.RFEM5.Node objects.
-            List<Dlubal.RFEM5.Surface> RfemSurfaceList = RfemSurfaceArray.OfType<Dlubal.RFEM5.Surface>().ToList(); 
+            // Unlocks licence and releases interface to RFEM application.
+            if (app != null)
+            {
+                app.UnlockLicense();
+                app = null;
+            }
+
+            // Cleans Garbage Collector and releases all cached COM interfaces.
+            System.GC.Collect();
+            System.GC.WaitForPendingFinalizers();
+
+            #endregion
+
+
 
             //output 'success' as true 
             writeSuccess = true;
+
+            ///the Surfaces below outputs created RFEM surfaces in output parameter
+            ///current funcionality does not use this
             return RfemSurfaceList;
 
         }

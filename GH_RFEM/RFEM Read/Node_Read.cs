@@ -12,7 +12,7 @@ using System.Windows.Forms;
 
 namespace GH_RFEM
 {
-    public class RFEM_Node_Read : GH_Component
+    public class Node_Read : GH_Component
     {
         //definition of RFEM variables used in further methods
         IApplication app = null;
@@ -26,8 +26,8 @@ namespace GH_RFEM
         /// Subcategory the panel. If you use non-existing tab or panel names, 
         /// new tabs/panels will automatically be created.
         /// </summary>
-        public RFEM_Node_Read()
-          : base("Node RFEM", "RFEM Nd Read",
+        public Node_Read()
+          : base("Read Nodes from RFEM", "RFEM Nd Read",
               "Create Rhino points from RFEM nodes",
               "RFEM", "Read")
         {
@@ -179,7 +179,7 @@ namespace GH_RFEM
             {
                 // You can add image files to your project resources and access them like this:
                 //return Resources.IconForThisComponent;
-                return GH_RFEM.Properties.Resources.icon_node;
+                return GH_RFEM.Properties.Resources.icon_node_read;
             }
         }
 

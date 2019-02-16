@@ -208,7 +208,7 @@ namespace GH_RFEM
                     tempMember.StartCrossSectionNo = currentNewSectionNo;
                     tempMember.TaperShape = TaperShapeType.Linear;
                 tempMember.Rotation.Type = RotationType.Angle;
-                    tempMember.Rotation.Angle = rotationMethodIn;
+                    tempMember.Rotation.Angle = rotationMethodIn * (Math.PI/ 180);
                     if (rfemHingeStartInput.No != -1) tempMember.StartHingeNo = currentNewHingeNo;
                     if (rfemHingeEndInput.No != -1) tempMember.EndHingeNo = currentNewHingeNo+1;
                     tempMember.Comment = commentsListMethodIn;
